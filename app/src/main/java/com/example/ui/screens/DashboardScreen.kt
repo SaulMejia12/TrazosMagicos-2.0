@@ -77,10 +77,10 @@ fun DashboardScreen(
     var showDiplomaLockDialog by remember { mutableStateOf(false) }
     val allTracesCompleted = progressList.size >= TracePaths.characters.size
 
-    val characters = if (currentFilter == "NUMBER") {
-        TracePaths.getNumbers()
-    } else {
-        TracePaths.getAlphabet()
+    val characters = when (currentFilter) {
+        "NUMBER" -> TracePaths.getNumbers()
+        "LETTER" -> TracePaths.getAlphabet()
+        else -> TracePaths.getShapes()
     }
 
     // Computing dynamic stats for Header
@@ -341,35 +341,35 @@ fun DashboardScreen(
                     )
                 }
 
-                // Playful Rounded Selector Tabs with 3D styled highlights (Numbers vs Alphabet)
+                // Playful Rounded Selector Tabs with 3D styled highlights (Numbers vs Alphabet vs Shapes)
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 8.dp),
-                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     // Numbers selector (Orange)
                     val isNumbersSelected = currentFilter == "NUMBER"
                     Box(
                         modifier = Modifier
                             .weight(1f)
-                            .height(56.dp)
-                            .clip(RoundedCornerShape(24.dp))
+                            .height(52.dp)
+                            .clip(RoundedCornerShape(20.dp))
                             .background(if (isNumbersSelected) Color(0xFFF97316) else Color.White)
                             .border(
                                 width = 2.dp,
                                 color = if (isNumbersSelected) Color(0xFFEA580C) else Color(0xFFBFDBFE),
-                                shape = RoundedCornerShape(24.dp)
+                                shape = RoundedCornerShape(20.dp)
                             )
                             .clickable { viewModel.setCategoryFilter("NUMBER") }
                             .testTag("tab_numbers"),
                         contentAlignment = Alignment.Center
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text("🔢 ", fontSize = 20.sp)
+                            Text("🔢 ", fontSize = 16.sp)
                             Text(
                                 text = "Números",
-                                fontSize = 16.sp,
+                                fontSize = 13.sp,
                                 fontWeight = FontWeight.Black,
                                 color = if (isNumbersSelected) Color.White else Color(0xFF1E3A8A)
                             )
@@ -381,25 +381,53 @@ fun DashboardScreen(
                     Box(
                         modifier = Modifier
                             .weight(1f)
-                            .height(56.dp)
-                            .clip(RoundedCornerShape(24.dp))
+                            .height(52.dp)
+                            .clip(RoundedCornerShape(20.dp))
                             .background(if (isLettersSelected) Color(0xFF06B6D4) else Color.White)
                             .border(
                                 width = 2.dp,
                                 color = if (isLettersSelected) Color(0xFF0891B2) else Color(0xFFBFDBFE),
-                                shape = RoundedCornerShape(24.dp)
+                                shape = RoundedCornerShape(20.dp)
                             )
                             .clickable { viewModel.setCategoryFilter("LETTER") }
                             .testTag("tab_letters"),
                         contentAlignment = Alignment.Center
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text("🔤 ", fontSize = 20.sp)
+                            Text("🔤 ", fontSize = 16.sp)
                             Text(
                                 text = "Letras",
-                                fontSize = 16.sp,
+                                fontSize = 13.sp,
                                 fontWeight = FontWeight.Black,
                                 color = if (isLettersSelected) Color.White else Color(0xFF1E3A8A)
+                            )
+                        }
+                    }
+
+                    // Shapes selector (Violet)
+                    val isShapesSelected = currentFilter == "SHAPE"
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(52.dp)
+                            .clip(RoundedCornerShape(20.dp))
+                            .background(if (isShapesSelected) Color(0xFF8B5CF6) else Color.White)
+                            .border(
+                                width = 2.dp,
+                                color = if (isShapesSelected) Color(0xFF7C3AED) else Color(0xFFBFDBFE),
+                                shape = RoundedCornerShape(20.dp)
+                            )
+                            .clickable { viewModel.setCategoryFilter("SHAPE") }
+                            .testTag("tab_shapes"),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text("🎨 ", fontSize = 16.sp)
+                            Text(
+                                text = "Figuras",
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Black,
+                                color = if (isShapesSelected) Color.White else Color(0xFF1E3A8A)
                             )
                         }
                     }
@@ -421,8 +449,16 @@ fun DashboardScreen(
                             val characterProgress = progressList.firstOrNull { it.charId == char.id }
                             val starsCount = characterProgress?.starsEarned ?: 0
                             
-                            val cardBg = if (char.isLetter) Color(0xFFE0F7FA) else Color(0xFFFFF3E0)
-                            val accentColor = if (char.isLetter) Color(0xFF0097A7) else Color(0xFFEF6C00)
+                            val cardBg = when {
+                                char.isShape -> Color(0xFFF5F3FF)
+                                char.isLetter -> Color(0xFFE0F7FA)
+                                else -> Color(0xFFFFF3E0)
+                            }
+                            val accentColor = when {
+                                char.isShape -> Color(0xFF7C3AED)
+                                char.isLetter -> Color(0xFF0097A7)
+                                else -> Color(0xFFEF6C00)
+                            }
 
                             Card(
                                 onClick = { onNavigateToTracing(char.id) },
@@ -441,14 +477,33 @@ fun DashboardScreen(
                                         horizontalAlignment = Alignment.CenterHorizontally,
                                         verticalArrangement = Arrangement.SpaceBetween
                                     ) {
-                                        // Main Trace Character Glyph
-                                        Text(
-                                            text = char.displayName,
-                                            fontSize = if (isTablet) 42.sp else 32.sp,
-                                            fontWeight = FontWeight.Black,
-                                            color = accentColor,
-                                            modifier = Modifier.padding(top = 4.dp)
-                                        )
+                                        // Main Trace Character Glyph or Shape
+                                        Column(
+                                            horizontalAlignment = Alignment.CenterHorizontally,
+                                            verticalArrangement = Arrangement.Center,
+                                            modifier = Modifier.weight(1f)
+                                        ) {
+                                            Text(
+                                                text = when (char.id) {
+                                                    "Circulo" -> "⚪"
+                                                    "Triangulo" -> "🔺"
+                                                    "Cuadrado" -> "⬜"
+                                                    "Estrella" -> "⭐"
+                                                    else -> char.displayName
+                                                },
+                                                fontSize = if (isTablet) 36.sp else 28.sp,
+                                                fontWeight = FontWeight.Black,
+                                                color = accentColor
+                                            )
+                                            if (char.isShape) {
+                                                Text(
+                                                    text = char.displayName,
+                                                    fontSize = 11.sp,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = accentColor.copy(alpha = 0.8f)
+                                                )
+                                            }
+                                        }
 
                                         // Display Earned Stars Below Character (Max 3)
                                         Row(

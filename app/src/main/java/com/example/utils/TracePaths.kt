@@ -7,7 +7,8 @@ data class TraceCharacter(
     val isLetter: Boolean,
     val displayName: String,
     val strokes: List<List<GuidePoint>>,
-    val phonemeSoundName: String // E.g., "Aaaa", "Bee", "Uno", "Dos"
+    val phonemeSoundName: String, // E.g., "Aaaa", "Bee", "Uno", "Dos"
+    val isShape: Boolean = false
 )
 
 fun interpolateStroke(points: List<GuidePoint>, segmentsCount: Int = 12): List<GuidePoint> {
@@ -499,7 +500,57 @@ object TracePaths {
                 GuidePoint(0.28f, 0.80f, 0),
                 GuidePoint(0.72f, 0.80f, 0)
             )
-        ), "Zeta")
+        ), "Zeta"),
+
+        // Shapes
+        "Circulo" to TraceCharacter("Circulo", false, "Círculo", listOf(
+            listOf(
+                GuidePoint(0.50f, 0.15f, 0),
+                GuidePoint(0.25f, 0.25f, 0),
+                GuidePoint(0.15f, 0.50f, 0),
+                GuidePoint(0.25f, 0.75f, 0),
+                GuidePoint(0.50f, 0.85f, 0),
+                GuidePoint(0.75f, 0.75f, 0),
+                GuidePoint(0.85f, 0.50f, 0),
+                GuidePoint(0.75f, 0.25f, 0),
+                GuidePoint(0.50f, 0.15f, 0)
+            )
+        ), "Círculo", isShape = true),
+
+        "Triangulo" to TraceCharacter("Triangulo", false, "Triángulo", listOf(
+            listOf(
+                GuidePoint(0.50f, 0.20f, 0),
+                GuidePoint(0.80f, 0.80f, 0),
+                GuidePoint(0.20f, 0.80f, 0),
+                GuidePoint(0.50f, 0.20f, 0)
+            )
+        ), "Triángulo", isShape = true),
+
+        "Cuadrado" to TraceCharacter("Cuadrado", false, "Cuadrado", listOf(
+            listOf(
+                GuidePoint(0.20f, 0.20f, 0),
+                GuidePoint(0.80f, 0.20f, 0),
+                GuidePoint(0.80f, 0.80f, 0),
+                GuidePoint(0.20f, 0.80f, 0),
+                GuidePoint(0.20f, 0.20f, 0)
+            )
+        ), "Cuadrado", isShape = true),
+
+        "Estrella" to TraceCharacter("Estrella", false, "Estrella", listOf(
+            listOf(
+                GuidePoint(0.50f, 0.15f, 0),
+                GuidePoint(0.62f, 0.42f, 0),
+                GuidePoint(0.90f, 0.42f, 0),
+                GuidePoint(0.68f, 0.60f, 0),
+                GuidePoint(0.78f, 0.88f, 0),
+                GuidePoint(0.50f, 0.72f, 0),
+                GuidePoint(0.22f, 0.88f, 0),
+                GuidePoint(0.32f, 0.60f, 0),
+                GuidePoint(0.10f, 0.42f, 0),
+                GuidePoint(0.38f, 0.42f, 0),
+                GuidePoint(0.50f, 0.15f, 0)
+            )
+        ), "Estrella", isShape = true)
     )
 
     val characters: Map<String, TraceCharacter> = rawCharacters.mapValues { (_, char) ->
@@ -507,5 +558,6 @@ object TracePaths {
     }
 
     fun getAlphabet(): List<TraceCharacter> = characters.values.filter { it.isLetter }.sortedBy { it.id }
-    fun getNumbers(): List<TraceCharacter> = characters.values.filter { !it.isLetter }.sortedBy { if (it.id == "0") 10 else it.id.toInt() }
+    fun getNumbers(): List<TraceCharacter> = characters.values.filter { !it.isLetter && !it.isShape }.sortedBy { if (it.id == "0") 10 else it.id.toInt() }
+    fun getShapes(): List<TraceCharacter> = characters.values.filter { it.isShape }.sortedBy { it.id }
 }

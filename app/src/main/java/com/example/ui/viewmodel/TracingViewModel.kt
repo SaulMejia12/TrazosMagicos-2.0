@@ -398,7 +398,11 @@ class TracingViewModel(
             val newProgress = TraceProgress(
                 profileId = pId,
                 charId = char.id,
-                charType = if (char.isLetter) "LETTER" else "NUMBER",
+                charType = when {
+                    char.isShape -> "SHAPE"
+                    char.isLetter -> "LETTER"
+                    else -> "NUMBER"
+                },
                 completedCount = newCompletedCount,
                 bestAccuracy = bestAcc,
                 starsEarned = bestStars,

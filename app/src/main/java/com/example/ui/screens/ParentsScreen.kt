@@ -49,6 +49,7 @@ fun ParentsScreen(
     val totalFinished = progressList.sumOf { it.completedCount }
     val uniqueLetters = progressList.filter { it.charType == "LETTER" && it.completedCount > 0 }.size
     val uniqueNumbers = progressList.filter { it.charType == "NUMBER" && it.completedCount > 0 }.size
+    val uniqueShapes = progressList.filter { it.charType == "SHAPE" && it.completedCount > 0 }.size
     val totalStars = progressList.sumOf { it.starsEarned }
     val avgAccuracy = if (progressList.isNotEmpty()) {
         progressList.map { it.bestAccuracy }.average().toInt()
@@ -614,6 +615,37 @@ fun ParentsScreen(
                             )
                             Text(
                                 "Números Escritos",
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = Color(0xFF757575),
+                                textAlign = TextAlign.Center
+                            )
+                        }
+                    }
+
+                    Card(
+                        modifier = Modifier
+                            .weight(1f)
+                            .aspectRatio(1.2f),
+                        colors = CardDefaults.cardColors(containerColor = Color.White),
+                        shape = RoundedCornerShape(20.dp)
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(12.dp),
+                            verticalArrangement = Arrangement.Center,
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Text("🎨", fontSize = 28.sp)
+                            Text(
+                                text = "$uniqueShapes / 4",
+                                fontSize = 20.sp,
+                                fontWeight = FontWeight.Black,
+                                color = Color(0xFF8E24AA)
+                            )
+                            Text(
+                                "Figuras Escritas",
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.Medium,
                                 color = Color(0xFF757575),

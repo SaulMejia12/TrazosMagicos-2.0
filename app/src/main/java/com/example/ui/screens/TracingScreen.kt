@@ -101,7 +101,12 @@ fun TracingScreen(
     fun speakPhoneme() {
         val charName = character?.phonemeSoundName ?: ""
         if (ttsReady && charName.isNotEmpty()) {
-            tts?.speak("¡Dibuja el ${if (character?.isLetter == true) "letra" else "número"} $charName!", TextToSpeech.QUEUE_FLUSH, null, null)
+            val intro = when {
+                character?.isShape == true -> "la figura"
+                character?.isLetter == true -> "la letra"
+                else -> "el número"
+            }
+            tts?.speak("¡Dibuja $intro $charName!", TextToSpeech.QUEUE_FLUSH, null, null)
         }
     }
 
@@ -187,7 +192,11 @@ fun TracingScreen(
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            text = if (character?.isLetter == true) "Letra ${character?.displayName}" else "Número ${character?.displayName}",
+                            text = when {
+                                character?.isShape == true -> "Figura ${character?.displayName}"
+                                character?.isLetter == true -> "Letra ${character?.displayName}"
+                                else -> "Número ${character?.displayName}"
+                            },
                             fontSize = 20.sp,
                             fontWeight = FontWeight.Black,
                             color = Color(0xFF1E3A8A), // Deep navy
