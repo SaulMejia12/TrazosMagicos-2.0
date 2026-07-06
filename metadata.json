@@ -1,0 +1,6 @@
+{
+  "name": "Trazos Mágicos",
+  "description": "Aplicación interactiva y colorida para que los niños aprendan a trazar letras y números con sonidos divertidos, recompensas y seguimiento de progreso para padres.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
