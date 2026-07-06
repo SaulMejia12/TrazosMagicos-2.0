@@ -2,6 +2,8 @@ package com.example.ui.screens
 
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -18,6 +20,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -76,6 +79,23 @@ fun DashboardScreen(
 
     var showDiplomaLockDialog by remember { mutableStateOf(false) }
     val allTracesCompleted = progressList.size >= TracePaths.characters.size
+
+    var currentMode by rememberSaveable { mutableStateOf("ADVENTURE") }
+
+    val adventurePath = remember {
+        val numbersList = TracePaths.getNumbers()
+        val shapesList = TracePaths.getShapes()
+        val lettersList = TracePaths.getAlphabet()
+        numbersList + shapesList + lettersList
+    }
+
+    val completedCharIds = remember(progressList) {
+        progressList.filter { it.completedCount > 0 }.map { it.charId }.toSet()
+    }
+
+    val firstUncompletedActiveIndex = remember(completedCharIds, adventurePath) {
+        adventurePath.indexOfFirst { !completedCharIds.contains(it.id) }
+    }
 
     val characters = when (currentFilter) {
         "NUMBER" -> TracePaths.getNumbers()
@@ -323,222 +343,373 @@ fun DashboardScreen(
                     }
                 }
 
-                // Friendly Title Intro
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(
-                        text = "¡Aprende Jugando! ⭐️",
-                        fontSize = 28.sp,
-                        fontWeight = FontWeight.ExtraBold,
-                        color = Color(0xFF0288D1),
-                        textAlign = TextAlign.Center
-                    )
-                    Text(
-                        text = "Toca una letra o número para comenzar a dibujar",
-                        fontSize = 15.sp,
-                        fontWeight = FontWeight.Medium,
-                        color = Color(0xFF546E7A),
-                        textAlign = TextAlign.Center
-                    )
-                }
-
-                // Playful Rounded Selector Tabs with 3D styled highlights (Numbers vs Alphabet vs Shapes)
+                         // Playful Mode Selector (Adventure vs Free Practice)
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 8.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        .background(Color(0xFFEFF6FF), RoundedCornerShape(24.dp))
+                        .padding(4.dp)
+                        .border(1.5.dp, Color(0xFFDBEAFE), RoundedCornerShape(24.dp)),
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
-                    // Numbers selector (Orange)
-                    val isNumbersSelected = currentFilter == "NUMBER"
+                    val isAdventure = currentMode == "ADVENTURE"
+                    
                     Box(
                         modifier = Modifier
                             .weight(1f)
-                            .height(52.dp)
+                            .height(48.dp)
                             .clip(RoundedCornerShape(20.dp))
-                            .background(if (isNumbersSelected) Color(0xFFF97316) else Color.White)
-                            .border(
-                                width = 2.dp,
-                                color = if (isNumbersSelected) Color(0xFFEA580C) else Color(0xFFBFDBFE),
-                                shape = RoundedCornerShape(20.dp)
-                            )
-                            .clickable { viewModel.setCategoryFilter("NUMBER") }
-                            .testTag("tab_numbers"),
+                            .background(if (isAdventure) Color(0xFF10B981) else Color.Transparent)
+                            .clickable { currentMode = "ADVENTURE" }
+                            .testTag("mode_adventure"),
                         contentAlignment = Alignment.Center
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text("🔢 ", fontSize = 16.sp)
+                            Text("🗺️ ", fontSize = 16.sp)
                             Text(
-                                text = "Números",
+                                text = "Modo Aventura",
                                 fontSize = 13.sp,
                                 fontWeight = FontWeight.Black,
-                                color = if (isNumbersSelected) Color.White else Color(0xFF1E3A8A)
+                                color = if (isAdventure) Color.White else Color(0xFF475569)
                             )
                         }
                     }
 
-                    // Letters selector (Cyan)
-                    val isLettersSelected = currentFilter == "LETTER"
                     Box(
                         modifier = Modifier
                             .weight(1f)
-                            .height(52.dp)
+                            .height(48.dp)
                             .clip(RoundedCornerShape(20.dp))
-                            .background(if (isLettersSelected) Color(0xFF06B6D4) else Color.White)
-                            .border(
-                                width = 2.dp,
-                                color = if (isLettersSelected) Color(0xFF0891B2) else Color(0xFFBFDBFE),
-                                shape = RoundedCornerShape(20.dp)
-                            )
-                            .clickable { viewModel.setCategoryFilter("LETTER") }
-                            .testTag("tab_letters"),
+                            .background(if (!isAdventure) Color(0xFF3B82F6) else Color.Transparent)
+                            .clickable { currentMode = "PRACTICE" }
+                            .testTag("mode_practice"),
                         contentAlignment = Alignment.Center
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text("🔤 ", fontSize = 16.sp)
+                            Text("🏫 ", fontSize = 16.sp)
                             Text(
-                                text = "Letras",
+                                text = "Práctica Libre",
                                 fontSize = 13.sp,
                                 fontWeight = FontWeight.Black,
-                                color = if (isLettersSelected) Color.White else Color(0xFF1E3A8A)
-                            )
-                        }
-                    }
-
-                    // Shapes selector (Violet)
-                    val isShapesSelected = currentFilter == "SHAPE"
-                    Box(
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(52.dp)
-                            .clip(RoundedCornerShape(20.dp))
-                            .background(if (isShapesSelected) Color(0xFF8B5CF6) else Color.White)
-                            .border(
-                                width = 2.dp,
-                                color = if (isShapesSelected) Color(0xFF7C3AED) else Color(0xFFBFDBFE),
-                                shape = RoundedCornerShape(20.dp)
-                            )
-                            .clickable { viewModel.setCategoryFilter("SHAPE") }
-                            .testTag("tab_shapes"),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text("🎨 ", fontSize = 16.sp)
-                            Text(
-                                text = "Figuras",
-                                fontSize = 13.sp,
-                                fontWeight = FontWeight.Black,
-                                color = if (isShapesSelected) Color.White else Color(0xFF1E3A8A)
+                                color = if (!isAdventure) Color.White else Color(0xFF475569)
                             )
                         }
                     }
                 }
 
-                // Kids Learning Cards Grid
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .heightIn(max = if (isTablet) 580.dp else 420.dp)
-                ) {
-                    LazyVerticalGrid(
-                        columns = GridCells.Adaptive(if (isTablet) 110.dp else 80.dp),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp),
-                        modifier = Modifier.fillMaxSize()
+                if (currentMode == "ADVENTURE") {
+                    // Adventure Intro Header
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier.padding(horizontal = 8.dp)
                     ) {
-                        items(characters) { char ->
+                        Text(
+                            text = "🗺️ Mapa de Aventuras 🗺️",
+                            fontSize = 24.sp,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = Color(0xFF0288D1),
+                            textAlign = TextAlign.Center
+                        )
+                        Text(
+                            text = "¡Completa cada nivel para desbloquear el camino mágico y ganar stickers!",
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF546E7A),
+                            textAlign = TextAlign.Center
+                        )
+                    }
+
+                    // Render Adventure Progress path
+                    val numbersList = remember { TracePaths.getNumbers() }
+                    val shapesList = remember { TracePaths.getShapes() }
+                    
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 8.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        adventurePath.forEachIndexed { i, char ->
+                            val isCompleted = completedCharIds.contains(char.id)
+                            val isUnlocked = i <= firstUncompletedActiveIndex
+                            val isActive = i == firstUncompletedActiveIndex
+                            
+                            // Group Header break
+                            if (i == 0) {
+                                WorldHeader(
+                                    title = "🌋 La Montaña de los Números",
+                                    subtitle = "¡Escribe los números para subir la montaña!",
+                                    icon = "🌋",
+                                    gradient = listOf(Color(0xFFF97316), Color(0xFFEF4444))
+                                )
+                                Spacer(modifier = Modifier.height(16.dp))
+                            } else if (i == numbersList.size) {
+                                WorldHeader(
+                                    title = "🏝️ La Isla de las Figuras",
+                                    subtitle = "¡Domina las figuras geométricas mágicas!",
+                                    icon = "🏝️",
+                                    gradient = listOf(Color(0xFF8B5CF6), Color(0xFFEC4899))
+                                )
+                                Spacer(modifier = Modifier.height(16.dp))
+                            } else if (i == numbersList.size + shapesList.size) {
+                                WorldHeader(
+                                    title = "🌳 El Bosque de las Letras",
+                                    subtitle = "¡Aprende el abecedario completo en el bosque!",
+                                    icon = "🌳",
+                                    gradient = listOf(Color(0xFF10B981), Color(0xFF06B6D4))
+                                )
+                                Spacer(modifier = Modifier.height(16.dp))
+                            }
+                            
+                            val accentColor = when {
+                                char.isShape -> Color(0xFF7C3AED)
+                                char.isLetter -> Color(0xFF0D9488)
+                                else -> Color(0xFFEA580C)
+                            }
+                            val bgColor = when {
+                                char.isShape -> Color(0xFF8B5CF6)
+                                char.isLetter -> Color(0xFF06B6D4)
+                                else -> Color(0xFFF97316)
+                            }
+                            
                             val characterProgress = progressList.firstOrNull { it.charId == char.id }
                             val starsCount = characterProgress?.starsEarned ?: 0
                             
-                            val cardBg = when {
-                                char.isShape -> Color(0xFFF5F3FF)
-                                char.isLetter -> Color(0xFFE0F7FA)
-                                else -> Color(0xFFFFF3E0)
+                            AdventureNode(
+                                char = char,
+                                index = i,
+                                isUnlocked = isUnlocked,
+                                isCompleted = isCompleted,
+                                isActive = isActive,
+                                starsCount = starsCount,
+                                accentColor = accentColor,
+                                bgColor = bgColor,
+                                onClick = { onNavigateToTracing(char.id) }
+                            )
+                            
+                            if (i < adventurePath.size - 1) {
+                                PathConnector(fromIndex = i, toIndex = i + 1)
                             }
-                            val accentColor = when {
-                                char.isShape -> Color(0xFF7C3AED)
-                                char.isLetter -> Color(0xFF0097A7)
-                                else -> Color(0xFFEF6C00)
-                            }
+                        }
+                    }
+                } else {
+                    // Friendly Title Intro
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(
+                            text = "¡Aprende Jugando! ⭐️",
+                            fontSize = 28.sp,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = Color(0xFF0288D1),
+                            textAlign = TextAlign.Center
+                        )
+                        Text(
+                            text = "Toca una letra o número para comenzar a dbiujar",
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = Color(0xFF546E7A),
+                            textAlign = TextAlign.Center
+                        )
+                    }
 
-                            Card(
-                                onClick = { onNavigateToTracing(char.id) },
-                                modifier = Modifier
-                                    .aspectRatio(1f)
-                                    .testTag("char_card_${char.id}"),
-                                shape = RoundedCornerShape(24.dp),
-                                colors = CardDefaults.cardColors(containerColor = cardBg),
-                                elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
-                            ) {
-                                Box(modifier = Modifier.fillMaxSize()) {
-                                    Column(
-                                        modifier = Modifier
-                                            .fillMaxSize()
-                                            .padding(8.dp),
-                                        horizontalAlignment = Alignment.CenterHorizontally,
-                                        verticalArrangement = Arrangement.SpaceBetween
-                                    ) {
-                                        // Main Trace Character Glyph or Shape
+                    // Playful Rounded Selector Tabs with 3D styled highlights (Numbers vs Alphabet vs Shapes)
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        // Numbers selector (Orange)
+                        val isNumbersSelected = currentFilter == "NUMBER"
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(52.dp)
+                                .clip(RoundedCornerShape(20.dp))
+                                .background(if (isNumbersSelected) Color(0xFFF97316) else Color.White)
+                                .border(
+                                    width = 2.dp,
+                                    color = if (isNumbersSelected) Color(0xFFEA580C) else Color(0xFFBFDBFE),
+                                    shape = RoundedCornerShape(20.dp)
+                                )
+                                .clickable { viewModel.setCategoryFilter("NUMBER") }
+                                .testTag("tab_numbers"),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text("🔢 ", fontSize = 16.sp)
+                                Text(
+                                    text = "Números",
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.Black,
+                                    color = if (isNumbersSelected) Color.White else Color(0xFF1E3A8A)
+                                )
+                            }
+                        }
+
+                        // Letters selector (Cyan)
+                        val isLettersSelected = currentFilter == "LETTER"
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(52.dp)
+                                .clip(RoundedCornerShape(20.dp))
+                                .background(if (isLettersSelected) Color(0xFF06B6D4) else Color.White)
+                                .border(
+                                    width = 2.dp,
+                                    color = if (isLettersSelected) Color(0xFF0891B2) else Color(0xFFBFDBFE),
+                                    shape = RoundedCornerShape(20.dp)
+                                )
+                                .clickable { viewModel.setCategoryFilter("LETTER") }
+                                .testTag("tab_letters"),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text("🔤 ", fontSize = 16.sp)
+                                Text(
+                                    text = "Letras",
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.Black,
+                                    color = if (isLettersSelected) Color.White else Color(0xFF1E3A8A)
+                                )
+                            }
+                        }
+
+                        // Shapes selector (Violet)
+                        val isShapesSelected = currentFilter == "SHAPE"
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(52.dp)
+                                .clip(RoundedCornerShape(20.dp))
+                                .background(if (isShapesSelected) Color(0xFF8B5CF6) else Color.White)
+                                .border(
+                                    width = 2.dp,
+                                    color = if (isShapesSelected) Color(0xFF7C3AED) else Color(0xFFBFDBFE),
+                                    shape = RoundedCornerShape(20.dp)
+                                )
+                                .clickable { viewModel.setCategoryFilter("SHAPE") }
+                                .testTag("tab_shapes"),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text("🎨 ", fontSize = 16.sp)
+                                Text(
+                                    text = "Figuras",
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.Black,
+                                    color = if (isShapesSelected) Color.White else Color(0xFF1E3A8A)
+                                )
+                            }
+                        }
+                    }
+
+                    // Kids Learning Cards Grid
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(max = if (isTablet) 580.dp else 420.dp)
+                    ) {
+                        LazyVerticalGrid(
+                            columns = GridCells.Adaptive(if (isTablet) 110.dp else 80.dp),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            verticalArrangement = Arrangement.spacedBy(12.dp),
+                            modifier = Modifier.fillMaxSize()
+                        ) {
+                            items(characters) { char ->
+                                val characterProgress = progressList.firstOrNull { it.charId == char.id }
+                                val starsCount = characterProgress?.starsEarned ?: 0
+                                
+                                val cardBg = when {
+                                    char.isShape -> Color(0xFFF5F3FF)
+                                    char.isLetter -> Color(0xFFE0F7FA)
+                                    else -> Color(0xFFFFF3E0)
+                                }
+                                val accentColor = when {
+                                    char.isShape -> Color(0xFF7C3AED)
+                                    char.isLetter -> Color(0xFF0097A7)
+                                    else -> Color(0xFFEF6C00)
+                                }
+
+                                Card(
+                                    onClick = { onNavigateToTracing(char.id) },
+                                    modifier = Modifier
+                                        .aspectRatio(1f)
+                                        .testTag("char_card_${char.id}"),
+                                    shape = RoundedCornerShape(24.dp),
+                                    colors = CardDefaults.cardColors(containerColor = cardBg),
+                                    elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+                                ) {
+                                    Box(modifier = Modifier.fillMaxSize()) {
                                         Column(
-                                            horizontalAlignment = Alignment.CenterHorizontally,
-                                            verticalArrangement = Arrangement.Center,
-                                            modifier = Modifier.weight(1f)
-                                        ) {
-                                            Text(
-                                                text = when (char.id) {
-                                                    "Circulo" -> "⚪"
-                                                    "Triangulo" -> "🔺"
-                                                    "Cuadrado" -> "⬜"
-                                                    "Estrella" -> "⭐"
-                                                    else -> char.displayName
-                                                },
-                                                fontSize = if (isTablet) 36.sp else 28.sp,
-                                                fontWeight = FontWeight.Black,
-                                                color = accentColor
-                                            )
-                                            if (char.isShape) {
-                                                Text(
-                                                    text = char.displayName,
-                                                    fontSize = 11.sp,
-                                                    fontWeight = FontWeight.Bold,
-                                                    color = accentColor.copy(alpha = 0.8f)
-                                                )
-                                            }
-                                        }
-
-                                        // Display Earned Stars Below Character (Max 3)
-                                        Row(
-                                            horizontalArrangement = Arrangement.Center,
-                                            verticalAlignment = Alignment.CenterVertically,
-                                            modifier = Modifier.fillMaxWidth()
-                                        ) {
-                                            repeat(3) { index ->
-                                                Icon(
-                                                    imageVector = Icons.Default.Star,
-                                                    contentDescription = "Star",
-                                                    tint = if (index < starsCount) Color(0xFFFFC107) else Color(0xFFB0BEC5),
-                                                    modifier = Modifier.size(if (isTablet) 18.dp else 14.dp)
-                                                )
-                                            }
-                                        }
-                                    }
-
-                                    // Small green checkmark in the top-right corner if completed
-                                    if (starsCount > 0 || (characterProgress?.completedCount ?: 0) > 0) {
-                                        Box(
                                             modifier = Modifier
-                                                .align(Alignment.TopEnd)
-                                                .padding(8.dp)
-                                                .size(18.dp)
-                                                .background(Color(0xFF22C55E), CircleShape) // Green-500
-                                                .border(1.5.dp, Color.White, CircleShape),
-                                            contentAlignment = Alignment.Center
+                                                .fillMaxSize()
+                                                .padding(8.dp),
+                                            horizontalAlignment = Alignment.CenterHorizontally,
+                                            verticalArrangement = Arrangement.SpaceBetween
                                         ) {
-                                            Icon(
-                                                imageVector = Icons.Default.Check,
-                                                contentDescription = "Completado",
-                                                tint = Color.White,
-                                                modifier = Modifier.size(10.dp)
-                                            )
+                                            // Main Trace Character Glyph or Shape
+                                            Column(
+                                                horizontalAlignment = Alignment.CenterHorizontally,
+                                                verticalArrangement = Arrangement.Center,
+                                                modifier = Modifier.weight(1f)
+                                            ) {
+                                                Text(
+                                                    text = when (char.id) {
+                                                        "Circulo" -> "⚪"
+                                                        "Triangulo" -> "🔺"
+                                                        "Cuadrado" -> "⬜"
+                                                        "Estrella" -> "⭐"
+                                                        else -> char.displayName
+                                                    },
+                                                    fontSize = if (isTablet) 36.sp else 28.sp,
+                                                    fontWeight = FontWeight.Black,
+                                                    color = accentColor
+                                                )
+                                                if (char.isShape) {
+                                                    Text(
+                                                        text = char.displayName,
+                                                        fontSize = 11.sp,
+                                                        fontWeight = FontWeight.Bold,
+                                                        color = accentColor.copy(alpha = 0.8f)
+                                                    )
+                                                }
+                                            }
+
+                                            // Display Earned Stars Below Character (Max 3)
+                                            Row(
+                                                horizontalArrangement = Arrangement.Center,
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                modifier = Modifier.fillMaxWidth()
+                                            ) {
+                                                repeat(3) { index ->
+                                                    Icon(
+                                                        imageVector = Icons.Default.Star,
+                                                        contentDescription = "Star",
+                                                        tint = if (index < starsCount) Color(0xFFFFC107) else Color(0xFFB0BEC5),
+                                                        modifier = Modifier.size(if (isTablet) 18.dp else 14.dp)
+                                                    )
+                                                }
+                                            }
+                                        }
+
+                                        // Small green checkmark in the top-right corner if completed
+                                        if (starsCount > 0 || (characterProgress?.completedCount ?: 0) > 0) {
+                                            Box(
+                                                modifier = Modifier
+                                                    .align(Alignment.TopEnd)
+                                                    .padding(8.dp)
+                                                    .size(18.dp)
+                                                    .background(Color(0xFF22C55E), CircleShape) // Green-500
+                                                    .border(1.5.dp, Color.White, CircleShape),
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                Icon(
+                                                    imageVector = Icons.Default.Check,
+                                                    contentDescription = "Completado",
+                                                    tint = Color.White,
+                                                    modifier = Modifier.size(10.dp)
+                                                )
+                                            }
                                         }
                                     }
                                 }
@@ -862,5 +1033,250 @@ fun DashboardScreen(
                 }
             }
         }
+    }
+}
+
+@Composable
+fun WorldHeader(title: String, subtitle: String, icon: String, gradient: List<Color>) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 12.dp),
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+        border = BorderStroke(2.dp, Brush.linearGradient(gradient))
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(Brush.linearGradient(colors = gradient.map { it.copy(alpha = 0.15f) }))
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(52.dp)
+                    .clip(CircleShape)
+                    .background(Brush.linearGradient(gradient)),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(icon, fontSize = 28.sp)
+            }
+            Spacer(modifier = Modifier.width(16.dp))
+            Column {
+                Text(
+                    text = title,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Black,
+                    color = gradient.last()
+                )
+                Text(
+                    text = subtitle,
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFF546E7A)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun AdventureNode(
+    char: TraceCharacter,
+    index: Int,
+    isUnlocked: Boolean,
+    isCompleted: Boolean,
+    isActive: Boolean,
+    starsCount: Int,
+    accentColor: Color,
+    bgColor: Color,
+    onClick: () -> Unit
+) {
+    val rowOffset = when (index % 4) {
+        0 -> (-45).dp
+        1 -> 0.dp
+        2 -> 45.dp
+        3 -> 0.dp
+        else -> 0.dp
+    }
+
+    val infiniteTransition = rememberInfiniteTransition(label = "pulse")
+    val pulseScale by infiniteTransition.animateFloat(
+        initialValue = 1.0f,
+        targetValue = 1.12f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1000, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "scale"
+    )
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .offset(x = rowOffset)
+            .padding(vertical = 4.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Box(
+            modifier = Modifier
+                .size(76.dp)
+                .scale(if (isActive) pulseScale else 1.0f)
+                .shadow(
+                    elevation = if (isUnlocked) 8.dp else 2.dp,
+                    shape = CircleShape,
+                    ambientColor = accentColor,
+                    spotColor = accentColor
+                )
+                .clip(CircleShape)
+                .background(
+                    if (isUnlocked) {
+                        Brush.radialGradient(
+                            colors = listOf(bgColor.copy(alpha = 0.5f), bgColor),
+                            radius = 110f
+                        )
+                    } else {
+                        Brush.verticalGradient(
+                            colors = listOf(Color(0xFFE2E8F0), Color(0xFFCBD5E1))
+                        )
+                    }
+                )
+                .border(
+                    width = if (isActive) 4.dp else 3.dp,
+                    color = if (isActive) Color(0xFFFFC107) else if (isUnlocked) accentColor else Color(0xFF94A3B8),
+                    shape = CircleShape
+                )
+                .clickable(enabled = isUnlocked) { onClick() }
+                .testTag("adventure_node_${char.id}"),
+            contentAlignment = Alignment.Center
+        ) {
+            if (isUnlocked) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    Text(
+                        text = when (char.id) {
+                            "Circulo" -> "⚪"
+                            "Triangulo" -> "🔺"
+                            "Cuadrado" -> "⬜"
+                            "Estrella" -> "⭐"
+                            else -> char.displayName
+                        },
+                        fontSize = if (char.isShape) 20.sp else 28.sp,
+                        fontWeight = FontWeight.Black,
+                        color = Color.White
+                    )
+                    if (char.isShape) {
+                        Text(
+                            text = char.displayName.take(5) + ".",
+                            fontSize = 9.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White.copy(alpha = 0.9f)
+                        )
+                    }
+                }
+            } else {
+                Text("🔒", fontSize = 24.sp)
+            }
+
+            if (isActive) {
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.TopCenter)
+                        .offset(y = (-10).dp)
+                        .background(Color(0xFFEF4444), RoundedCornerShape(6.dp))
+                        .padding(horizontal = 6.dp, vertical = 2.dp)
+                ) {
+                    Text(
+                        text = "¡AQUÍ!",
+                        color = Color.White,
+                        fontSize = 8.sp,
+                        fontWeight = FontWeight.Black
+                    )
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(4.dp))
+
+        if (isUnlocked) {
+            Row(
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                repeat(3) { starIdx ->
+                    Icon(
+                        imageVector = Icons.Default.Star,
+                        contentDescription = "Star",
+                        tint = if (starIdx < starsCount) Color(0xFFFFC107) else Color(0xFFCBD5E1),
+                        modifier = Modifier.size(14.dp)
+                    )
+                }
+            }
+        } else {
+            Text(
+                text = "Nivel ${index + 1}",
+                fontSize = 11.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color(0xFF94A3B8)
+            )
+        }
+    }
+}
+
+@Composable
+fun PathConnector(fromIndex: Int, toIndex: Int) {
+    val fromOffset = when (fromIndex % 4) {
+        0 -> (-45).dp
+        1 -> 0.dp
+        2 -> 45.dp
+        3 -> 0.dp
+        else -> 0.dp
+    }
+    val toOffset = when (toIndex % 4) {
+        0 -> (-45).dp
+        1 -> 0.dp
+        2 -> 45.dp
+        3 -> 0.dp
+        else -> 0.dp
+    }
+    
+    Canvas(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(36.dp)
+    ) {
+        val width = size.width
+        val height = size.height
+        
+        val fromOffsetPx = fromOffset.toPx()
+        val toOffsetPx = toOffset.toPx()
+        
+        val startX = width / 2 + fromOffsetPx
+        val startY = 0f
+        
+        val endX = width / 2 + toOffsetPx
+        val endY = height
+        
+        val path = androidx.compose.ui.graphics.Path().apply {
+            moveTo(startX, startY)
+            cubicTo(
+                startX, startY + height / 2,
+                endX, startY + height / 2,
+                endX, endY
+            )
+        }
+        
+        drawPath(
+            path = path,
+            color = Color(0xFF94A3B8).copy(alpha = 0.5f),
+            style = androidx.compose.ui.graphics.drawscope.Stroke(
+                width = 6f,
+                pathEffect = androidx.compose.ui.graphics.PathEffect.dashPathEffect(floatArrayOf(15f, 15f), 0f)
+            )
+        )
     }
 }
