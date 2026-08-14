@@ -12,6 +12,20 @@ import kotlin.math.sin
 class SoundSynthesizer {
     private val scope = CoroutineScope(Dispatchers.Default)
 
+    fun playBubblePop() {
+        // Juicy high-frequency bubble 'plop/pop' sound with fast pitch bend
+        playToneSlide(startFreq = 480f, endFreq = 960f, durationMs = 45, volume = 0.55f)
+    }
+
+    fun playStickerPop() {
+        // Cheerful double mini-pop for stickers
+        scope.launch {
+            playToneSlide(startFreq = 600f, endFreq = 1200f, durationMs = 40, volume = 0.6f)
+            delay(45)
+            playToneSlide(startFreq = 800f, endFreq = 1600f, durationMs = 50, volume = 0.65f)
+        }
+    }
+
     fun playDrawingTick() {
         // Gentle soft pluck
         playTone(frequency = 1100f, durationMs = 25, volume = 0.3f)

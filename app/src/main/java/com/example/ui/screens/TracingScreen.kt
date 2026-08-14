@@ -12,7 +12,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Star
-import androidx.compose.material.icons.filled.VolumeUp
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -36,7 +35,6 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
-import android.speech.tts.TextToSpeech
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -46,7 +44,6 @@ import androidx.compose.ui.window.DialogProperties
 import com.example.ui.components.StickerCard
 import com.example.ui.components.StickerModel
 import com.example.ui.viewmodel.TracingViewModel
-import java.util.Locale
 
 @Composable
 fun TracingScreen(
@@ -77,45 +74,6 @@ fun TracingScreen(
         )
     }
     val activeBgColor = magicBackgrounds[playerBgColor] ?: Color(0xFFF0F9FF)
-
-    val context = LocalContext.current
-
-    // Text to Speech for sound phonemes of letters/numbers in Spanish!
-    var tts by remember { mutableStateOf<TextToSpeech?>(null) }
-    var ttsReady by remember { mutableStateOf(false) }
-
-    DisposableEffect(Unit) {
-        val speech = TextToSpeech(context) { status ->
-            if (status == TextToSpeech.SUCCESS) {
-                ttsReady = true
-            }
-        }
-        speech.language = Locale("es", "ES")
-        tts = speech
-        onDispose {
-            speech.stop()
-            speech.shutdown()
-        }
-    }
-
-    fun speakPhoneme() {
-        val charName = character?.phonemeSoundName ?: ""
-        if (ttsReady && charName.isNotEmpty()) {
-            val intro = when {
-                character?.isShape == true -> "la figura"
-                character?.isLetter == true -> "la letra"
-                else -> "el número"
-            }
-            tts?.speak("¡Dibuja $intro $charName!", TextToSpeech.QUEUE_FLUSH, null, null)
-        }
-    }
-
-    // Auto-announce phoneme once loaded
-    LaunchedEffect(character) {
-        if (character != null) {
-            speakPhoneme()
-        }
-    }
 
     val rainbowBrush = Brush.linearGradient(
         colors = listOf(
@@ -204,39 +162,21 @@ fun TracingScreen(
                         )
                     }
 
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        // Pronounce audio helper (Blue background 3D-like)
-                        Box(
-                            modifier = Modifier
-                                .size(48.dp)
-                                .clip(RoundedCornerShape(16.dp))
-                                .background(Color(0xFF3B82F6)) // Blue-500
-                                .border(2.dp, Color.White, RoundedCornerShape(16.dp))
-                                .clickable { speakPhoneme() }
-                                .testTag("btn_pronounce"),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.VolumeUp,
-                                contentDescription = "Pronunciar",
-                                tint = Color.White,
-                                modifier = Modifier.size(24.dp)
-                            )
-                        }
-
-                        // Reset drawing board (Orange background 3D-like with 🧹 emoji)
-                        Box(
-                            modifier = Modifier
-                                .size(48.dp)
-                                .clip(RoundedCornerShape(16.dp))
-                                .background(Color(0xFFF97316)) // Orange-500
-                                .border(2.dp, Color.White, RoundedCornerShape(16.dp))
-                                .clickable { viewModel.resetTracingState() }
-                                .testTag("btn_reset_drawing"),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text("🧹", fontSize = 24.sp)
-                        }
+                    // Reset drawing board (Orange background 3D-like with 🧹 emoji)
+                    Box(
+                        modifier = Modifier
+                            .size(48.dp)
+                            .clip(RoundedCornerShape(16.dp))
+                            .background(Color(0xFFF97316)) // Orange-500
+                            .border(2.dp, Color.White, RoundedCornerShape(16.dp))
+                            .clickable {
+                                viewModel.playBubblePop()
+                                viewModel.resetTracingState()
+                            }
+                            .testTag("btn_reset_drawing"),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text("🧹", fontSize = 24.sp)
                     }
                 }
             }
@@ -774,6 +714,7 @@ fun TracingScreen(
                         ) {
                             Button(
                                 onClick = {
+                                    viewModel.playBubblePop()
                                     viewModel.resetTracingState()
                                 },
                                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF9800)),
@@ -792,6 +733,7 @@ fun TracingScreen(
 
                             Button(
                                 onClick = {
+                                    viewModel.playBubblePop()
                                     viewModel.resetTracingState()
                                     onNavigateBack()
                                 },

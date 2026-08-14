@@ -184,7 +184,10 @@ fun DashboardScreen(
                                 .clip(RoundedCornerShape(20.dp))
                                 .background(Color.White.copy(alpha = 0.95f))
                                 .border(2.dp, Color(0xFFF472B6), RoundedCornerShape(20.dp))
-                                .clickable { onNavigateToRewards() }
+                                .clickable {
+                                    viewModel.playStickerPop()
+                                    onNavigateToRewards()
+                                }
                                 .padding(horizontal = 10.dp, vertical = 6.dp)
                                 .testTag("dashboard_header_stickers_button")
                         ) {
@@ -205,7 +208,10 @@ fun DashboardScreen(
                                 .clip(RoundedCornerShape(20.dp))
                                 .background(Color.White.copy(alpha = 0.9f))
                                 .border(2.dp, Color(0xFFF9A825), RoundedCornerShape(20.dp))
-                                .clickable { onNavigateToProfiles() }
+                                .clickable {
+                                    viewModel.playBubblePop()
+                                    onNavigateToProfiles()
+                                }
                                 .padding(horizontal = 10.dp, vertical = 6.dp)
                                 .testTag("dashboard_avatar_switch_button")
                         ) {
@@ -362,7 +368,10 @@ fun DashboardScreen(
                             .height(48.dp)
                             .clip(RoundedCornerShape(20.dp))
                             .background(if (isAdventure) Color(0xFF10B981) else Color.Transparent)
-                            .clickable { currentMode = "ADVENTURE" }
+                            .clickable {
+                                viewModel.playBubblePop()
+                                currentMode = "ADVENTURE"
+                            }
                             .testTag("mode_adventure"),
                         contentAlignment = Alignment.Center
                     ) {
@@ -383,7 +392,10 @@ fun DashboardScreen(
                             .height(48.dp)
                             .clip(RoundedCornerShape(20.dp))
                             .background(if (!isAdventure) Color(0xFF3B82F6) else Color.Transparent)
-                            .clickable { currentMode = "PRACTICE" }
+                            .clickable {
+                                viewModel.playBubblePop()
+                                currentMode = "PRACTICE"
+                            }
                             .testTag("mode_practice"),
                         contentAlignment = Alignment.Center
                     ) {
@@ -486,7 +498,10 @@ fun DashboardScreen(
                                 starsCount = starsCount,
                                 accentColor = accentColor,
                                 bgColor = bgColor,
-                                onClick = { onNavigateToTracing(char.id) }
+                                onClick = {
+                                    viewModel.playBubblePop()
+                                    onNavigateToTracing(char.id)
+                                }
                             )
                             
                             if (i < adventurePath.size - 1) {
@@ -600,7 +615,10 @@ fun DashboardScreen(
                                     color = if (isNumbersSelected) Color(0xFFEA580C) else Color(0xFFBFDBFE),
                                     shape = RoundedCornerShape(20.dp)
                                 )
-                                .clickable { viewModel.setCategoryFilter("NUMBER") }
+                                .clickable {
+                                    viewModel.playBubblePop()
+                                    viewModel.setCategoryFilter("NUMBER")
+                                }
                                 .testTag("tab_numbers"),
                             contentAlignment = Alignment.Center
                         ) {
@@ -628,7 +646,10 @@ fun DashboardScreen(
                                     color = if (isLettersSelected) Color(0xFF0891B2) else Color(0xFFBFDBFE),
                                     shape = RoundedCornerShape(20.dp)
                                 )
-                                .clickable { viewModel.setCategoryFilter("LETTER") }
+                                .clickable {
+                                    viewModel.playBubblePop()
+                                    viewModel.setCategoryFilter("LETTER")
+                                }
                                 .testTag("tab_letters"),
                             contentAlignment = Alignment.Center
                         ) {
@@ -656,7 +677,10 @@ fun DashboardScreen(
                                     color = if (isShapesSelected) Color(0xFF7C3AED) else Color(0xFFBFDBFE),
                                     shape = RoundedCornerShape(20.dp)
                                 )
-                                .clickable { viewModel.setCategoryFilter("SHAPE") }
+                                .clickable {
+                                    viewModel.playBubblePop()
+                                    viewModel.setCategoryFilter("SHAPE")
+                                }
                                 .testTag("tab_shapes"),
                             contentAlignment = Alignment.Center
                         ) {
@@ -700,7 +724,10 @@ fun DashboardScreen(
                                 }
 
                                 Card(
-                                    onClick = { onNavigateToTracing(char.id) },
+                                    onClick = {
+                                        viewModel.playBubblePop()
+                                        onNavigateToTracing(char.id)
+                                    },
                                     modifier = Modifier
                                         .aspectRatio(1f)
                                         .testTag("char_card_${char.id}"),
@@ -1082,20 +1109,27 @@ fun DashboardScreen(
                         )
                     }
 
-                    // Button 3: Aceptar
+                    // Button 3: Aceptar y Reiniciar Aventura
                     Button(
-                        onClick = { showAllCompletedDialog = false },
+                        onClick = {
+                            viewModel.playBubblePop()
+                            showAllCompletedDialog = false
+                            val profileId = viewModel.activeProfileId.value
+                            if (profileId.isNotBlank()) {
+                                viewModel.resetProfileProgress(profileId)
+                            }
+                        },
                         colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF10B981)),
                         shape = RoundedCornerShape(16.dp),
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(44.dp)
+                            .height(46.dp)
                             .testTag("btn_popup_accept_all_completed"),
                         elevation = ButtonDefaults.buttonElevation(defaultElevation = 2.dp)
                     ) {
                         Text(
-                            text = "Aceptar",
-                            fontSize = 14.sp,
+                            text = "🔄 Aceptar y Reiniciar Recorrido ✨",
+                            fontSize = 13.sp,
                             fontWeight = FontWeight.Bold,
                             color = Color.White
                         )

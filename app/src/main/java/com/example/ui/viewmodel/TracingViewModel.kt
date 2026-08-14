@@ -429,7 +429,15 @@ class TracingViewModel(
     }
 
     fun playClickSound() {
-        soundSynth.playDrawingTick()
+        soundSynth.playBubblePop()
+    }
+
+    fun playBubblePop() {
+        soundSynth.playBubblePop()
+    }
+
+    fun playStickerPop() {
+        soundSynth.playStickerPop()
     }
 
     fun playStarSound(index: Int = 0) {

@@ -258,6 +258,7 @@ fun RewardsScreen(
                         Box(
                             modifier = Modifier
                                 .clickable(enabled = isUnlocked) {
+                                    viewModel.playStickerPop()
                                     selectedStickerDetail = sticker
                                 }
                         ) {
