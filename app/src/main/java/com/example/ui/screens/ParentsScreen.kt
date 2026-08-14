@@ -31,7 +31,8 @@ import com.example.ui.viewmodel.TracingViewModel
 @Composable
 fun ParentsScreen(
     viewModel: TracingViewModel,
-    onNavigateBack: () -> Unit
+    onNavigateBack: () -> Unit,
+    onNavigateToOnboarding: () -> Unit = {}
 ) {
     val progressList by viewModel.allProgress.collectAsState()
     val stickerList by viewModel.allStickers.collectAsState()
@@ -87,7 +88,13 @@ fun ParentsScreen(
                     },
                     navigationIcon = {
                         IconButton(
-                            onClick = onNavigateBack,
+                            onClick = {
+                                if (!viewModel.hasProfiles()) {
+                                    onNavigateToOnboarding()
+                                } else {
+                                    onNavigateBack()
+                                }
+                            },
                             modifier = Modifier.testTag("parents_back_button")
                         ) {
                             Icon(
@@ -173,10 +180,48 @@ fun ParentsScreen(
                         }
 
                         Text(
-                            text = "Modifica, restablece el progreso de trazado, elimina o cambia los perfiles de los niños registrados.",
+                            text = "Modifica, restablece el progreso o elimina los perfiles de los niños registrados.",
                             fontSize = 13.sp,
                             color = Color(0xFF757575)
                         )
+
+                        if (profiles.isEmpty()) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(16.dp))
+                                    .background(Color(0xFFF3E5F5))
+                                    .padding(24.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                    Text("🧸", fontSize = 40.sp)
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                    Text(
+                                        text = "No hay perfiles activos",
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color(0xFF4A148C),
+                                        fontSize = 16.sp
+                                    )
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Text(
+                                        text = "Crea un nuevo perfil para que el niño pueda comenzar su aventura de trazos.",
+                                        color = Color(0xFF6A1B9A),
+                                        fontSize = 12.sp,
+                                        textAlign = TextAlign.Center
+                                    )
+                                    Spacer(modifier = Modifier.height(16.dp))
+                                    Button(
+                                        onClick = onNavigateToOnboarding,
+                                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF8E24AA)),
+                                        shape = RoundedCornerShape(12.dp),
+                                        modifier = Modifier.testTag("btn_create_first_profile")
+                                    ) {
+                                        Text("Crear Perfil", color = Color.White, fontWeight = FontWeight.Bold)
+                                    }
+                                }
+                            }
+                        }
 
                         profiles.forEach { profile ->
                             val isActive = profile.id == activeProfileId
@@ -250,6 +295,23 @@ fun ParentsScreen(
                                                     )
                                                 }
                                             }
+
+                                            // Direct Delete button on header for high visibility
+                                            IconButton(
+                                                onClick = { showDeleteConfirmId = profile.id },
+                                                modifier = Modifier
+                                                    .size(36.dp)
+                                                    .clip(CircleShape)
+                                                    .background(Color(0xFFFEE2E2))
+                                                    .testTag("btn_delete_profile_${profile.id}")
+                                            ) {
+                                                Icon(
+                                                    imageVector = Icons.Default.Delete,
+                                                    contentDescription = "Eliminar perfil ${profile.name}",
+                                                    tint = Color(0xFFDC2626),
+                                                    modifier = Modifier.size(20.dp)
+                                                )
+                                            }
                                         }
 
                                         Row(
@@ -262,7 +324,7 @@ fun ParentsScreen(
                                                     onClick = { viewModel.switchProfile(profile.id) },
                                                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF8E24AA)),
                                                     contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
-                                                    modifier = Modifier.weight(1f).height(32.dp).testTag("btn_activate_${profile.id}"),
+                                                    modifier = Modifier.weight(1f).height(36.dp).testTag("btn_activate_${profile.id}"),
                                                     shape = RoundedCornerShape(8.dp)
                                                 ) {
                                                     Text("Usar Perfil", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color.White)
@@ -278,30 +340,25 @@ fun ParentsScreen(
                                                     editBgColor = profile.bgColor
                                                 },
                                                 contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
-                                                modifier = Modifier.weight(1f).height(32.dp).testTag("btn_edit_profile_${profile.id}"),
+                                                modifier = Modifier.weight(1f).height(36.dp).testTag("btn_edit_profile_${profile.id}"),
                                                 shape = RoundedCornerShape(8.dp),
                                                 colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFF8E24AA))
                                             ) {
+                                                Icon(Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(14.dp))
+                                                Spacer(modifier = Modifier.width(4.dp))
                                                 Text("Editar", fontSize = 11.sp, fontWeight = FontWeight.Bold)
                                             }
 
                                             OutlinedButton(
                                                 onClick = { showResetConfirmId = profile.id },
                                                 contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
-                                                modifier = Modifier.weight(1.2f).height(32.dp).testTag("btn_reset_progress_${profile.id}"),
+                                                modifier = Modifier.weight(1.2f).height(36.dp).testTag("btn_reset_progress_${profile.id}"),
                                                 shape = RoundedCornerShape(8.dp),
                                                 colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFFD32F2F))
                                             ) {
+                                                Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(14.dp))
+                                                Spacer(modifier = Modifier.width(4.dp))
                                                 Text("Restablecer", fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                                            }
-
-                                            if (profiles.size > 1) {
-                                                IconButton(
-                                                    onClick = { showDeleteConfirmId = profile.id },
-                                                    modifier = Modifier.size(32.dp).testTag("btn_delete_profile_${profile.id}")
-                                                ) {
-                                                    Text("🗑️", fontSize = 16.sp)
-                                                }
                                             }
                                         }
                                     } else {
@@ -480,6 +537,9 @@ fun ParentsScreen(
                                 onClick = {
                                     viewModel.deleteProfile(pId)
                                     showDeleteConfirmId = null
+                                    if (!viewModel.hasProfiles() || viewModel.childProfiles.value.isEmpty()) {
+                                        onNavigateToOnboarding()
+                                    }
                                 },
                                 modifier = Modifier.testTag("btn_confirm_delete")
                             ) {

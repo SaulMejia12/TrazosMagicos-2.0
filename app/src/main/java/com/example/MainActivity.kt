@@ -5,6 +5,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -44,9 +45,12 @@ class MainActivity : ComponentActivity() {
             factory = factory
         )
 
+        val hasProfiles = remember { viewModel.hasProfiles() }
+        val startDestination = if (hasProfiles) "dashboard" else "onboarding"
+
         NavHost(
           navController = navController,
-          startDestination = "profiles",
+          startDestination = startDestination,
           modifier = Modifier.fillMaxSize()
         ) {
           // 0. Eye-catching Child Welcome Screen
@@ -135,7 +139,18 @@ class MainActivity : ComponentActivity() {
             ParentsScreen(
               viewModel = viewModel,
               onNavigateBack = {
-                navController.popBackStack()
+                if (!viewModel.hasProfiles()) {
+                  navController.navigate("onboarding") {
+                    popUpTo(0) { inclusive = true }
+                  }
+                } else {
+                  navController.popBackStack()
+                }
+              },
+              onNavigateToOnboarding = {
+                navController.navigate("onboarding") {
+                  popUpTo(0) { inclusive = true }
+                }
               }
             )
           }

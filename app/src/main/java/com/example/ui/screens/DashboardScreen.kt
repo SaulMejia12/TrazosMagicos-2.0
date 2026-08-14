@@ -56,6 +56,13 @@ fun DashboardScreen(
     val progressList by viewModel.allProgress.collectAsState()
     val stickerList by viewModel.allStickers.collectAsState()
     val currentFilter by viewModel.categoryFilter.collectAsState()
+    val childProfiles by viewModel.childProfiles.collectAsState()
+
+    LaunchedEffect(childProfiles) {
+        if (childProfiles.isEmpty()) {
+            onNavigateToProfiles()
+        }
+    }
 
     val playerName by viewModel.playerName.collectAsState()
     val playerAge by viewModel.playerAge.collectAsState()

@@ -40,6 +40,12 @@ fun ProfileSelectionScreen(
     val configuration = LocalConfiguration.current
     val isTablet = configuration.screenWidthDp >= 600
 
+    LaunchedEffect(profiles) {
+        if (profiles.isEmpty()) {
+            onCreateNewProfile()
+        }
+    }
+
     Box(
         modifier = Modifier
             .fillMaxSize()

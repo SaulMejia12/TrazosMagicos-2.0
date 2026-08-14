@@ -39,10 +39,10 @@ fun OnboardingScreen(
     val currentAvatar by viewModel.playerAvatar.collectAsState()
     val currentBgColor by viewModel.playerBgColor.collectAsState()
 
-    var nameInput by remember { mutableStateOf(if (currentName == "Pequeño Trazador") "" else currentName) }
-    var selectedAge by remember { mutableStateOf(currentAge) }
-    var selectedAvatar by remember { mutableStateOf(currentAvatar) }
-    var selectedBgColor by remember { mutableStateOf(currentBgColor) }
+    var nameInput by remember { mutableStateOf(if (currentName == "Pequeño Trazador" || currentName == "Pequeño Artista") "" else currentName) }
+    var selectedAge by remember { mutableStateOf(if (currentAge in 3..8) currentAge else 5) }
+    var selectedAvatar by remember { mutableStateOf(if (currentAvatar.isNotBlank()) currentAvatar else "🦁") }
+    var selectedBgColor by remember { mutableStateOf(if (currentBgColor.isNotBlank()) currentBgColor else "Celeste Mágico") }
 
     val focusManager = LocalFocusManager.current
     val scrollState = rememberScrollState()
@@ -248,7 +248,10 @@ fun OnboardingScreen(
                                         color = if (isSelected) Color(0xFFD97706) else Color(0xFFCBD5E1),
                                         shape = RoundedCornerShape(16.dp)
                                     )
-                                    .clickable { selectedAge = age }
+                                    .clickable {
+                                        selectedAge = age
+                                        viewModel.playClickSound()
+                                    }
                                     .testTag("onboarding_age_$age"),
                                 contentAlignment = Alignment.Center
                             ) {
@@ -320,7 +323,10 @@ fun OnboardingScreen(
                                                 color = if (isSelected) Color(0xFF6366F1) else Color(0xFFCBD5E1),
                                                 shape = CircleShape
                                             )
-                                            .clickable { selectedAvatar = avatar }
+                                            .clickable {
+                                                selectedAvatar = avatar
+                                                viewModel.playClickSound()
+                                            }
                                             .testTag("avatar_$avatar"),
                                         contentAlignment = Alignment.Center
                                     ) {
@@ -369,7 +375,10 @@ fun OnboardingScreen(
                                         color = if (isSelected) option.dotColor else Color(0xFFCBD5E1),
                                         shape = RoundedCornerShape(16.dp)
                                     )
-                                    .clickable { selectedBgColor = option.name }
+                                    .clickable {
+                                        selectedBgColor = option.name
+                                        viewModel.playClickSound()
+                                    }
                                     .padding(horizontal = 12.dp, vertical = 8.dp)
                                     .testTag("bg_color_${option.name}"),
                                 contentAlignment = Alignment.Center
@@ -421,8 +430,9 @@ fun OnboardingScreen(
                             .border(2.dp, Color.White, RoundedCornerShape(20.dp))
                             .clickable {
                                 // Save new profile in TracingViewModel SharedPreferences
-                                val finalName = nameInput.trim().ifBlank { "Pequeño Trazador" }
+                                val finalName = nameInput.trim().ifBlank { "Pequeño Artista" }
                                 viewModel.createNewProfile(finalName, selectedAge, selectedAvatar, selectedBgColor)
+                                viewModel.playSuccessSound()
                                 onNavigateToDashboard()
                             }
                             .testTag("btn_empezar_aventura"),

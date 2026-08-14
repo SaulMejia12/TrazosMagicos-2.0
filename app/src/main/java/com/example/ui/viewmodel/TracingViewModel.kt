@@ -45,7 +45,7 @@ class TracingViewModel(
     // Player Profile States (persisted via SharedPreferences)
     private val sharedPrefs = application.getSharedPreferences("trazos_magicos_prefs", Context.MODE_PRIVATE)
 
-    private val _activeProfileId = MutableStateFlow(sharedPrefs.getString("active_profile_id", "profile_default") ?: "profile_default")
+    private val _activeProfileId = MutableStateFlow(sharedPrefs.getString("active_profile_id", "") ?: "")
     val activeProfileId: StateFlow<String> = _activeProfileId.asStateFlow()
 
     private val _playerName = MutableStateFlow("Pequeño Trazador")
@@ -64,43 +64,52 @@ class TracingViewModel(
     val childProfiles: StateFlow<List<ChildProfile>> = _childProfiles.asStateFlow()
 
     init {
-        // Initialize active profile IDs list if not exists
-        val idsString = sharedPrefs.getString("profile_ids", "")
-        if (idsString.isNullOrBlank()) {
-            sharedPrefs.edit()
-                .putString("profile_ids", "profile_default")
-                .putString("profile_name_profile_default", "Pequeño Trazador")
-                .putInt("profile_age_profile_default", 4)
-                .putString("profile_avatar_profile_default", "🦊")
-                .putString("profile_bg_color_profile_default", "Celeste Mágico")
-                .putString("active_profile_id", "profile_default")
-                .apply()
-        }
         _childProfiles.value = loadProfiles()
-        loadActiveProfile()
+        if (_childProfiles.value.isNotEmpty()) {
+            val savedActiveId = sharedPrefs.getString("active_profile_id", "") ?: ""
+            val initialId = if (_childProfiles.value.any { it.id == savedActiveId }) savedActiveId else _childProfiles.value.first().id
+            _activeProfileId.value = initialId
+            loadActiveProfile()
+        }
         generateParentalPuzzle()
     }
 
+    fun hasProfiles(): Boolean {
+        val idsString = sharedPrefs.getString("profile_ids", "") ?: ""
+        return idsString.isNotBlank() && _childProfiles.value.isNotEmpty()
+    }
+
     private fun loadProfiles(): List<ChildProfile> {
-        val idsString = sharedPrefs.getString("profile_ids", "profile_default") ?: "profile_default"
+        val idsString = sharedPrefs.getString("profile_ids", "") ?: ""
+        if (idsString.isBlank()) return emptyList()
         val ids = idsString.split(",").filter { it.isNotBlank() }
-        return ids.map { id ->
-            ChildProfile(
-                id = id,
-                name = sharedPrefs.getString("profile_name_$id", "Pequeño Trazador") ?: "Pequeño Trazador",
-                age = sharedPrefs.getInt("profile_age_$id", 4),
-                avatar = sharedPrefs.getString("profile_avatar_$id", "🦊") ?: "🦊",
-                bgColor = sharedPrefs.getString("profile_bg_color_$id", "Celeste Mágico") ?: "Celeste Mágico"
-            )
+        return ids.mapNotNull { id ->
+            val name = sharedPrefs.getString("profile_name_$id", null)
+            if (name != null) {
+                ChildProfile(
+                    id = id,
+                    name = name,
+                    age = sharedPrefs.getInt("profile_age_$id", 4),
+                    avatar = sharedPrefs.getString("profile_avatar_$id", "🦊") ?: "🦊",
+                    bgColor = sharedPrefs.getString("profile_bg_color_$id", "Celeste Mágico") ?: "Celeste Mágico"
+                )
+            } else null
         }
     }
 
     fun loadActiveProfile() {
         val activeId = _activeProfileId.value
-        _playerName.value = sharedPrefs.getString("profile_name_$activeId", "Pequeño Trazador") ?: "Pequeño Trazador"
-        _playerAge.value = sharedPrefs.getInt("profile_age_$activeId", 4)
-        _playerAvatar.value = sharedPrefs.getString("profile_avatar_$activeId", "🦊") ?: "🦊"
-        _playerBgColor.value = sharedPrefs.getString("profile_bg_color_$activeId", "Celeste Mágico") ?: "Celeste Mágico"
+        if (activeId.isNotBlank()) {
+            _playerName.value = sharedPrefs.getString("profile_name_$activeId", "Pequeño Trazador") ?: "Pequeño Trazador"
+            _playerAge.value = sharedPrefs.getInt("profile_age_$activeId", 4)
+            _playerAvatar.value = sharedPrefs.getString("profile_avatar_$activeId", "🦊") ?: "🦊"
+            _playerBgColor.value = sharedPrefs.getString("profile_bg_color_$activeId", "Celeste Mágico") ?: "Celeste Mágico"
+        } else {
+            _playerName.value = ""
+            _playerAge.value = 5
+            _playerAvatar.value = "🦁"
+            _playerBgColor.value = "Celeste Mágico"
+        }
     }
 
     fun switchProfile(profileId: String) {
@@ -158,9 +167,9 @@ class TracingViewModel(
     }
 
     fun deleteProfile(profileId: String) {
-        val idsString = sharedPrefs.getString("profile_ids", "profile_default") ?: "profile_default"
+        val idsString = sharedPrefs.getString("profile_ids", "") ?: ""
         val ids = idsString.split(",").filter { it.isNotBlank() }.toMutableList()
-        if (ids.size <= 1) return // Do not delete the only profile
+        if (ids.isEmpty()) return
         
         ids.remove(profileId)
         
@@ -171,9 +180,9 @@ class TracingViewModel(
             .remove("profile_avatar_$profileId")
             .remove("profile_bg_color_$profileId")
             
-        // If the deleted profile was active, switch to another one
+        // If the deleted profile was active, switch to another one or clear
         if (_activeProfileId.value == profileId) {
-            val fallbackId = ids.first()
+            val fallbackId = ids.firstOrNull() ?: ""
             editor.putString("active_profile_id", fallbackId)
             _activeProfileId.value = fallbackId
         }
@@ -413,6 +422,18 @@ class TracingViewModel(
             // Save Sticker Reward
             repository.saveSticker(StickerReward(profileId = pId, stickerId = randomSticker, unlockTime = System.currentTimeMillis()))
         }
+    }
+
+    fun playSuccessSound() {
+        soundSynth.playSuccess()
+    }
+
+    fun playClickSound() {
+        soundSynth.playDrawingTick()
+    }
+
+    fun playStarSound(index: Int = 0) {
+        soundSynth.playStarPop(index)
     }
 
     fun resetAllLearningData() {
