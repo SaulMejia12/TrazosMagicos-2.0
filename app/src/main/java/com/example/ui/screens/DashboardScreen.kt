@@ -85,7 +85,18 @@ fun DashboardScreen(
     var parentGateError by remember { mutableStateOf(false) }
 
     var showDiplomaLockDialog by remember { mutableStateOf(false) }
-    val allTracesCompleted = progressList.size >= TracePaths.characters.size
+    val completedCount = progressList.filter { it.completedCount > 0 }.size
+    val allTracesCompleted = completedCount >= TracePaths.characters.size
+
+    var showAllCompletedDialog by rememberSaveable { mutableStateOf(false) }
+    var hasAutoShownCompletionDialog by rememberSaveable(playerName) { mutableStateOf(false) }
+
+    LaunchedEffect(allTracesCompleted, playerName) {
+        if (allTracesCompleted && !hasAutoShownCompletionDialog) {
+            showAllCompletedDialog = true
+            hasAutoShownCompletionDialog = true
+        }
+    }
 
     var currentMode by rememberSaveable { mutableStateOf("ADVENTURE") }
 
@@ -112,7 +123,6 @@ fun DashboardScreen(
 
     // Computing dynamic stats for Header
     val totalStarsEarned = progressList.sumOf { it.starsEarned }
-    val completedCount = progressList.filter { it.completedCount > 0 }.size
     val currentLevel = 1 + (completedCount / 2)
     val levelProgressModulo = completedCount % 3
 
@@ -135,18 +145,19 @@ fun DashboardScreen(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    // 1. Stars Earned Badge & Profile Switcher (Left)
+                    // 1. Stars Earned Badge, Album Shortcut & Profile Switcher (Left)
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
+                        // Stars Badge
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             modifier = Modifier
                                 .clip(RoundedCornerShape(20.dp))
                                 .background(Color.White.copy(alpha = 0.9f))
                                 .border(2.dp, Color(0xFFBFDBFE), RoundedCornerShape(20.dp))
-                                .padding(horizontal = 12.dp, vertical = 6.dp)
+                                .padding(horizontal = 10.dp, vertical = 6.dp)
                         ) {
                             Box(
                                 modifier = Modifier
@@ -157,12 +168,33 @@ fun DashboardScreen(
                             ) {
                                 Text("★", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Bold)
                             }
-                            Spacer(modifier = Modifier.width(6.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
                             Text(
                                 text = "$totalStarsEarned",
                                 color = Color(0xFF1E3A8A), // Blue-900
                                 fontWeight = FontWeight.Black,
-                                fontSize = 16.sp
+                                fontSize = 15.sp
+                            )
+                        }
+
+                        // Stickers Album Quick Button
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(20.dp))
+                                .background(Color.White.copy(alpha = 0.95f))
+                                .border(2.dp, Color(0xFFF472B6), RoundedCornerShape(20.dp))
+                                .clickable { onNavigateToRewards() }
+                                .padding(horizontal = 10.dp, vertical = 6.dp)
+                                .testTag("dashboard_header_stickers_button")
+                        ) {
+                            Text(text = "🏆", fontSize = 16.sp)
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                text = "${stickerList.size}",
+                                color = Color(0xFF9D174D),
+                                fontWeight = FontWeight.Black,
+                                fontSize = 14.sp
                             )
                         }
 
@@ -174,16 +206,16 @@ fun DashboardScreen(
                                 .background(Color.White.copy(alpha = 0.9f))
                                 .border(2.dp, Color(0xFFF9A825), RoundedCornerShape(20.dp))
                                 .clickable { onNavigateToProfiles() }
-                                .padding(horizontal = 12.dp, vertical = 6.dp)
+                                .padding(horizontal = 10.dp, vertical = 6.dp)
                                 .testTag("dashboard_avatar_switch_button")
                         ) {
-                            Text(text = playerAvatar, fontSize = 18.sp)
+                            Text(text = playerAvatar, fontSize = 16.sp)
                             Spacer(modifier = Modifier.width(4.dp))
                             Text(
                                 text = "Cambiar",
                                 color = Color(0xFFE65100),
                                 fontWeight = FontWeight.Black,
-                                fontSize = 12.sp
+                                fontSize = 11.sp
                             )
                         }
                     }
@@ -268,43 +300,6 @@ fun DashboardScreen(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                // Safe Kid Mode Banner (Privacy, Ad-Free, Offline Verification)
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(
-                        containerColor = Color(0xFF4CAF50).copy(alpha = 0.15f)
-                    ),
-                    shape = RoundedCornerShape(20.dp),
-                    border = CardDefaults.outlinedCardBorder().copy(
-                        brush = Brush.linearGradient(
-                            colors = listOf(Color(0xFF4CAF50), Color(0xFF8BC34A))
-                        )
-                    )
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(12.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.VerifiedUser,
-                            contentDescription = "Safe Kids Mode",
-                            tint = Color(0xFF2E7D32),
-                            modifier = Modifier.size(24.dp)
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = "🛡️ Modo Seguro: 100% Offline • Sin Anuncios • Privado",
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color(0xFF2E7D32),
-                            textAlign = TextAlign.Center
-                        )
-                    }
-                }
-
                 // Cute player profile card
                 Card(
                     modifier = Modifier.fillMaxWidth(),
@@ -496,6 +491,73 @@ fun DashboardScreen(
                             
                             if (i < adventurePath.size - 1) {
                                 PathConnector(fromIndex = i, toIndex = i + 1)
+                            } else {
+                                PathConnector(fromIndex = i, toIndex = i + 1)
+                                Spacer(modifier = Modifier.height(10.dp))
+                                Card(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 8.dp),
+                                    shape = RoundedCornerShape(28.dp),
+                                    colors = CardDefaults.cardColors(
+                                        containerColor = if (allTracesCompleted) Color(0xFFF5F3FF) else Color(0xFFF8FAFC)
+                                    ),
+                                    border = BorderStroke(
+                                        2.5.dp,
+                                        if (allTracesCompleted) Brush.linearGradient(listOf(Color(0xFF8B5CF6), Color(0xFFEC4899)))
+                                        else Brush.linearGradient(listOf(Color(0xFFCBD5E1), Color(0xFF94A3B8)))
+                                    ),
+                                    elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
+                                ) {
+                                    Column(
+                                        modifier = Modifier.padding(20.dp),
+                                        horizontalAlignment = Alignment.CenterHorizontally,
+                                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                                    ) {
+                                        Text(
+                                            text = if (allTracesCompleted) "🏰 ¡Castillo de Graduación Mágico! 🎓" else "🏰 Meta Final de la Aventura 🔒",
+                                            fontSize = 18.sp,
+                                            fontWeight = FontWeight.Black,
+                                            color = if (allTracesCompleted) Color(0xFF6D28D9) else Color(0xFF475569),
+                                            textAlign = TextAlign.Center
+                                        )
+                                        Text(
+                                            text = if (allTracesCompleted)
+                                                "¡Felicidades $playerName! Has completado todos los desafíos mágicos de la aventura. Toca el botón para ver y compartir tu diploma oficial."
+                                            else
+                                                "¡Llega hasta el final completando todos los números, figuras y letras para desbloquear tu gran Diploma de Logros!",
+                                            fontSize = 13.sp,
+                                            fontWeight = FontWeight.Medium,
+                                            color = Color(0xFF64748B),
+                                            textAlign = TextAlign.Center
+                                        )
+                                        Button(
+                                            onClick = {
+                                                if (allTracesCompleted) {
+                                                    onNavigateToDiploma()
+                                                } else {
+                                                    showDiplomaLockDialog = true
+                                                }
+                                            },
+                                            colors = ButtonDefaults.buttonColors(
+                                                containerColor = if (allTracesCompleted) Color(0xFF7C3AED) else Color(0xFF94A3B8)
+                                            ),
+                                            shape = RoundedCornerShape(18.dp),
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .height(50.dp)
+                                                .testTag("btn_adventure_end_diploma"),
+                                            elevation = ButtonDefaults.buttonElevation(defaultElevation = 4.dp)
+                                        ) {
+                                            Text(
+                                                text = if (allTracesCompleted) "🎓 Ver y Compartir Mi Diploma de Logros ✨" else "🔒 Ver y Compartir Mi Diploma (Bloqueado)",
+                                                fontSize = 14.sp,
+                                                fontWeight = FontWeight.Black,
+                                                color = Color.White
+                                            )
+                                        }
+                                    }
+                                }
                             }
                         }
                     }
@@ -724,126 +786,6 @@ fun DashboardScreen(
                         }
                     }
                 }
-
-                // Trophy Sticker Rewards Section
-                Spacer(modifier = Modifier.height(12.dp))
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(32.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color.White),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
-                ) {
-                    Column(
-                        modifier = Modifier.padding(20.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Text(
-                            text = "🏆 Mis Premios Ganados",
-                            fontSize = 20.sp,
-                            fontWeight = FontWeight.Black,
-                            color = Color(0xFFD81B60),
-                            textAlign = TextAlign.Center
-                        )
-                        Text(
-                            text = "¡Traza letras y números para desbloquear stickers increíbles!",
-                            fontSize = 13.sp,
-                            color = Color(0xFF78909C),
-                            textAlign = TextAlign.Center,
-                            modifier = Modifier.padding(bottom = 12.dp)
-                        )
-
-                        val unlockedStickerIds = stickerList.map { it.stickerId }.toSet()
-
-                        if (unlockedStickerIds.isEmpty()) {
-                            // Cute friendly empty state
-                            Column(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(24.dp),
-                                horizontalAlignment = Alignment.CenterHorizontally
-                            ) {
-                                Text("🦁 🚀 🦖", fontSize = 42.sp)
-                                Spacer(modifier = Modifier.height(8.dp))
-                                Text(
-                                    text = "¡Tu álbum de stickers está vacío!\nCompleta tu primer nivel para ganar un sticker.",
-                                    fontSize = 14.sp,
-                                    fontWeight = FontWeight.Medium,
-                                    color = Color(0xFF90A4AE),
-                                    textAlign = TextAlign.Center
-                                )
-                            }
-                        } else {
-                            // Display Grid of Stickers (showing both unlocked and grayed out locked ones so they are encouraged!)
-                            val displayStickers = StickerModel.list
-                            LazyVerticalGrid(
-                                columns = GridCells.Adaptive(if (isTablet) 110.dp else 90.dp),
-                                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                verticalArrangement = Arrangement.spacedBy(8.dp),
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .heightIn(max = if (isTablet) 360.dp else 240.dp)
-                            ) {
-                                items(displayStickers) { sticker ->
-                                    val isUnlocked = unlockedStickerIds.contains(sticker.id)
-                                    StickerCard(
-                                        stickerId = sticker.id,
-                                        isUnlocked = isUnlocked
-                                    )
-                                }
-                            }
-                        }
-
-                        Spacer(modifier = Modifier.height(16.dp))
-
-                        Button(
-                            onClick = onNavigateToRewards,
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = Color(0xFFD81B60)
-                            ),
-                            shape = RoundedCornerShape(20.dp),
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(52.dp)
-                                .testTag("btn_go_to_rewards"),
-                            elevation = ButtonDefaults.buttonElevation(defaultElevation = 4.dp)
-                        ) {
-                            Text(
-                                text = "🏆 Ver Todo Mi Álbum de Stickers ✨",
-                                fontSize = 16.sp,
-                                fontWeight = FontWeight.Black,
-                                color = Color.White
-                            )
-                        }
-
-                        Spacer(modifier = Modifier.height(10.dp))
-
-                        Button(
-                            onClick = {
-                                if (allTracesCompleted) {
-                                    onNavigateToDiploma()
-                                } else {
-                                    showDiplomaLockDialog = true
-                                }
-                            },
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = if (allTracesCompleted) Color(0xFF6D28D9) else Color(0xFF94A3B8)
-                            ),
-                            shape = RoundedCornerShape(20.dp),
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(52.dp)
-                                .testTag("btn_go_to_diploma"),
-                            elevation = ButtonDefaults.buttonElevation(defaultElevation = 4.dp)
-                        ) {
-                            Text(
-                                text = if (allTracesCompleted) "🎓 Ver y Compartir Mi Diploma de Logros ✨" else "🔒 Diploma de Logros (Bloqueado)",
-                                fontSize = 16.sp,
-                                fontWeight = FontWeight.Black,
-                                color = Color.White
-                            )
-                        }
-                    }
-                }
             }
         }
     }
@@ -1041,6 +983,127 @@ fun DashboardScreen(
             }
         }
     }
+
+    // Small Congratulatory Pop-up when ALL activities are completed
+    if (showAllCompletedDialog) {
+        Dialog(onDismissRequest = { showAllCompletedDialog = false }) {
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp)
+                    .shadow(16.dp, RoundedCornerShape(28.dp))
+                    .testTag("dialog_all_activities_completed"),
+                shape = RoundedCornerShape(28.dp),
+                colors = CardDefaults.cardColors(containerColor = Color.White)
+            ) {
+                Column(
+                    modifier = Modifier
+                        .background(
+                            Brush.verticalGradient(
+                                colors = listOf(Color(0xFFFFFBEB), Color.White)
+                            )
+                        )
+                        .padding(20.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(14.dp)
+                ) {
+                    // Avatar and Graduation Cap badge
+                    Box(
+                        modifier = Modifier
+                            .size(72.dp)
+                            .clip(CircleShape)
+                            .background(
+                                Brush.linearGradient(
+                                    colors = listOf(Color(0xFFFBBF24), Color(0xFFF59E0B))
+                                )
+                            ),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(text = if (playerAvatar.isNotBlank()) playerAvatar else "🎓", fontSize = 36.sp)
+                    }
+
+                    Text(
+                        text = "🎉 ¡Felicidades, $playerName! 🌟",
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Black,
+                        color = Color(0xFFB45309),
+                        textAlign = TextAlign.Center
+                    )
+
+                    Text(
+                        text = "¡Has completado todas las actividades mágicas de letras, números y figuras! Eres un súper campeón(a) de los trazos. 🏆✨",
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = Color(0xFF4B5563),
+                        textAlign = TextAlign.Center
+                    )
+
+                    // Button 1: Ver todo mi álbum de stickers
+                    Button(
+                        onClick = {
+                            showAllCompletedDialog = false
+                            onNavigateToRewards()
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFD81B60)),
+                        shape = RoundedCornerShape(16.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(46.dp)
+                            .testTag("btn_popup_go_to_stickers"),
+                        elevation = ButtonDefaults.buttonElevation(defaultElevation = 2.dp)
+                    ) {
+                        Text(
+                            text = "🏆 Ver Todo Mi Álbum de Stickers ✨",
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White
+                        )
+                    }
+
+                    // Button 2: Ver y compartir mi diploma de logros
+                    Button(
+                        onClick = {
+                            showAllCompletedDialog = false
+                            onNavigateToDiploma()
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF6D28D9)),
+                        shape = RoundedCornerShape(16.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(46.dp)
+                            .testTag("btn_popup_go_to_diploma"),
+                        elevation = ButtonDefaults.buttonElevation(defaultElevation = 2.dp)
+                    ) {
+                        Text(
+                            text = "🎓 Ver y Compartir Mi Diploma ✨",
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White
+                        )
+                    }
+
+                    // Button 3: Aceptar
+                    Button(
+                        onClick = { showAllCompletedDialog = false },
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF10B981)),
+                        shape = RoundedCornerShape(16.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(44.dp)
+                            .testTag("btn_popup_accept_all_completed"),
+                        elevation = ButtonDefaults.buttonElevation(defaultElevation = 2.dp)
+                    ) {
+                        Text(
+                            text = "Aceptar",
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White
+                        )
+                    }
+                }
+            }
+        }
+    }
 }
 
 @Composable
@@ -1127,6 +1190,31 @@ fun AdventureNode(
             .padding(vertical = 4.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
+        // Floating label positioned above/outside the circle node
+        if (isActive) {
+            Box(
+                modifier = Modifier
+                    .scale(pulseScale)
+                    .shadow(4.dp, RoundedCornerShape(12.dp))
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(
+                        Brush.horizontalGradient(
+                            colors = listOf(Color(0xFFEF4444), Color(0xFFF43F5E))
+                        )
+                    )
+                    .border(1.5.dp, Color.White, RoundedCornerShape(12.dp))
+                    .padding(horizontal = 10.dp, vertical = 3.dp)
+            ) {
+                Text(
+                    text = "👇 ¡AQUÍ! ✨",
+                    color = Color.White,
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Black
+                )
+            }
+            Spacer(modifier = Modifier.height(4.dp))
+        }
+
         Box(
             modifier = Modifier
                 .size(76.dp)
@@ -1187,23 +1275,6 @@ fun AdventureNode(
                 }
             } else {
                 Text("🔒", fontSize = 24.sp)
-            }
-
-            if (isActive) {
-                Box(
-                    modifier = Modifier
-                        .align(Alignment.TopCenter)
-                        .offset(y = (-10).dp)
-                        .background(Color(0xFFEF4444), RoundedCornerShape(6.dp))
-                        .padding(horizontal = 6.dp, vertical = 2.dp)
-                ) {
-                    Text(
-                        text = "¡AQUÍ!",
-                        color = Color.White,
-                        fontSize = 8.sp,
-                        fontWeight = FontWeight.Black
-                    )
-                }
             }
         }
 
