@@ -27,6 +27,12 @@ import kotlinx.coroutines.launch
 import kotlin.math.hypot
 import kotlin.random.Random
 
+enum class TracingFeedback {
+    EXCELLENT,      // >= 80% accuracy -> 3 stars, Sticker reward, Fanfare
+    GOOD_EFFORT,    // 55% - 79% accuracy -> 2 stars, Encouraging tone
+    NEEDS_PRACTICE  // < 55% accuracy / many errors -> 1 star, NO celebration, retry sound
+}
+
 data class ChildProfile(
     val id: String,
     val name: String,
@@ -254,6 +260,19 @@ class TracingViewModel(
     private val _unlockedSticker = MutableStateFlow<String?>(null)
     val unlockedSticker: StateFlow<String?> = _unlockedSticker.asStateFlow()
 
+    private val _tracingFeedback = MutableStateFlow(TracingFeedback.EXCELLENT)
+    val tracingFeedback: StateFlow<TracingFeedback> = _tracingFeedback.asStateFlow()
+
+    private val _accuracyScore = MutableStateFlow(100)
+    val accuracyScore: StateFlow<Int> = _accuracyScore.asStateFlow()
+
+    private val _starsEarned = MutableStateFlow(3)
+    val starsEarned: StateFlow<Int> = _starsEarned.asStateFlow()
+
+    // Tracking metrics for accuracy calculation
+    private var onTargetTouches = 0
+    private var offTargetTouches = 0
+
     // Active Category Filter for learning dashboard: "LETTER" or "NUMBER"
     private val _categoryFilter = MutableStateFlow("NUMBER")
     val categoryFilter: StateFlow<String> = _categoryFilter.asStateFlow()
@@ -312,7 +331,12 @@ class TracingViewModel(
         _isLevelCompleted.value = false
         _unlockedSticker.value = null
         _showRetryHint.value = false
+        _accuracyScore.value = 100
+        _starsEarned.value = 3
+        _tracingFeedback.value = TracingFeedback.EXCELLENT
         isNewSegmentStarted = true
+        onTargetTouches = 0
+        offTargetTouches = 0
     }
 
     fun onUserDragEnd() {
@@ -336,6 +360,25 @@ class TracingViewModel(
         isNewSegmentStarted = false
 
         val tolerance = 0.14f
+        val currentTarget = currentStroke[pointIdx]
+        val distToTarget = hypot(x - currentTarget.x, y - currentTarget.y)
+
+        // Evaluate if the touch point is close to the expected path
+        var minDistanceToStroke = distToTarget
+        for (pt in currentStroke) {
+            val d = hypot(x - pt.x, y - pt.y)
+            if (d < minDistanceToStroke) {
+                minDistanceToStroke = d
+            }
+        }
+
+        if (minDistanceToStroke <= tolerance * 1.4f) {
+            onTargetTouches++
+        } else {
+            offTargetTouches++
+            _showRetryHint.value = true
+        }
+
         var advanced = false
 
         // Loop to advance as many points as are within the tolerance of the current touch point
@@ -370,7 +413,7 @@ class TracingViewModel(
                 _currentStrokeIndex.value = strokeIdx
                 _currentPointIndex.value = pointIdx
             } else {
-                // ALL STROKES COMPLETED! LEVEL SUCCESS!
+                // ALL STROKES COMPLETED! Evaluate real trace accuracy
                 _currentStrokeIndex.value = strokeIdx
                 _currentPointIndex.value = 0
                 completeLevel()
@@ -381,27 +424,51 @@ class TracingViewModel(
     private fun completeLevel() {
         val char = _selectedChar.value ?: return
         _isLevelCompleted.value = true
-        soundSynth.playSuccess()
 
-        // Generate and unlock a cute sticker reward!
+        val totalTouches = onTargetTouches + offTargetTouches
+        // Real accuracy calculated strictly from how accurately they traced on path vs off path
+        val calculatedAccuracy = if (totalTouches > 0) {
+            ((onTargetTouches.toFloat() / totalTouches.toFloat()) * 100).toInt().coerceIn(15, 100)
+        } else {
+            100
+        }
+        _accuracyScore.value = calculatedAccuracy
+
+        val feedback = when {
+            calculatedAccuracy >= 78 -> TracingFeedback.EXCELLENT
+            calculatedAccuracy >= 52 -> TracingFeedback.GOOD_EFFORT
+            else -> TracingFeedback.NEEDS_PRACTICE
+        }
+        _tracingFeedback.value = feedback
+
+        val stars = when (feedback) {
+            TracingFeedback.EXCELLENT -> 3
+            TracingFeedback.GOOD_EFFORT -> 2
+            TracingFeedback.NEEDS_PRACTICE -> 1
+        }
+        _starsEarned.value = stars
+
         val stickersPool = listOf("dino", "rocket", "panda", "sun", "star", "unicorn", "frog", "crab", "lion", "fox", "whale", "koala")
-        val randomSticker = stickersPool.random()
+        // Only grant sticker on truly excellent work
+        val randomSticker = if (feedback == TracingFeedback.EXCELLENT) {
+            stickersPool.random()
+        } else {
+            null
+        }
         _unlockedSticker.value = randomSticker
+
+        // Sound feedback according to performance: no celebration fanfare on mistakes!
+        if (feedback == TracingFeedback.NEEDS_PRACTICE) {
+            soundSynth.playError()
+        } else {
+            soundSynth.playSuccess()
+        }
 
         viewModelScope.launch {
             val pId = _activeProfileId.value
-            // Save Progress
             val currentProg = repository.getProgressForChar(pId, char.id)
-            val newCompletedCount = (currentProg?.completedCount ?: 0) + 1
-            // Compute realistic high kid-friendly accuracy score (90 to 100)
-            val randomAccuracy = Random.nextInt(92, 101)
-            val bestAcc = maxOf(currentProg?.bestAccuracy ?: 0, randomAccuracy)
-            
-            val stars = when {
-                randomAccuracy >= 95 -> 3
-                randomAccuracy >= 92 -> 2
-                else -> 1
-            }
+            val newCompletedCount = (currentProg?.completedCount ?: 0) + (if (feedback != TracingFeedback.NEEDS_PRACTICE) 1 else 0)
+            val bestAcc = maxOf(currentProg?.bestAccuracy ?: 0, calculatedAccuracy)
             val bestStars = maxOf(currentProg?.starsEarned ?: 0, stars)
 
             val newProgress = TraceProgress(
@@ -419,8 +486,9 @@ class TracingViewModel(
             )
             repository.saveProgress(newProgress)
 
-            // Save Sticker Reward
-            repository.saveSticker(StickerReward(profileId = pId, stickerId = randomSticker, unlockTime = System.currentTimeMillis()))
+            if (randomSticker != null) {
+                repository.saveSticker(StickerReward(profileId = pId, stickerId = randomSticker, unlockTime = System.currentTimeMillis()))
+            }
         }
     }
 

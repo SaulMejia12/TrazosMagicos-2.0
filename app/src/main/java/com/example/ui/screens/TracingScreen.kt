@@ -43,6 +43,7 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.example.ui.components.StickerCard
 import com.example.ui.components.StickerModel
+import com.example.ui.viewmodel.TracingFeedback
 import com.example.ui.viewmodel.TracingViewModel
 
 @Composable
@@ -63,6 +64,9 @@ fun TracingScreen(
     val unlockedSticker by viewModel.unlockedSticker.collectAsState()
     val showRetryHint by viewModel.showRetryHint.collectAsState()
     val playerBgColor by viewModel.playerBgColor.collectAsState()
+    val feedbackType by viewModel.tracingFeedback.collectAsState()
+    val accuracyScore by viewModel.accuracyScore.collectAsState()
+    val starsEarned by viewModel.starsEarned.collectAsState()
 
     val magicBackgrounds = remember {
         mapOf(
@@ -219,7 +223,7 @@ fun TracingScreen(
                         modifier = Modifier.padding(bottom = 8.dp)
                     ) {
                         Text(
-                            text = "¡Inténtalo de nuevo! Sigue todos los puntitos ✍️✨",
+                            text = "⚠️ ¡Cuidado! Mantente dentro del caminito de puntitos 🐾",
                             fontSize = 14.sp,
                             fontWeight = FontWeight.Black,
                             color = Color(0xFFDC2626), // Red-600
@@ -626,7 +630,7 @@ fun TracingScreen(
         }
     }
 
-    // Full-Screen Celebratory Reward Modal Dialog on level success!
+    // Result Modal Dialog: Celebrates on success, encourages/guides on mistakes!
     if (isLevelCompleted) {
         Dialog(
             onDismissRequest = { /* Force interaction with buttons */ },
@@ -639,7 +643,6 @@ fun TracingScreen(
                     .padding(24.dp),
                 contentAlignment = Alignment.Center
             ) {
-                // Interactive celebration card
                 Card(
                     modifier = Modifier
                         .fillMaxWidth(0.92f)
@@ -652,82 +655,154 @@ fun TracingScreen(
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(28.dp),
+                            .padding(24.dp),
                         horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                        verticalArrangement = Arrangement.spacedBy(14.dp)
                     ) {
-                        // Exploding stars top
-                        Text(
-                            text = "🎉 ¡EXCELENTE TRABAJO! 🎉",
-                            fontSize = 22.sp,
-                            fontWeight = FontWeight.Black,
-                            color = Color(0xFFFF5722),
-                            textAlign = TextAlign.Center
-                        )
+                        when (feedbackType) {
+                            TracingFeedback.EXCELLENT -> {
+                                Text(
+                                    text = "🎉 ¡EXCELENTE TRABAJO! 🎉",
+                                    fontSize = 22.sp,
+                                    fontWeight = FontWeight.Black,
+                                    color = Color(0xFFFF5722),
+                                    textAlign = TextAlign.Center
+                                )
 
-                        Text(
-                            text = "¡Has completado el nivel con éxito!",
-                            fontSize = 15.sp,
-                            color = Color(0xFF546E7A),
-                            textAlign = TextAlign.Center
-                        )
+                                Text(
+                                    text = "¡Has seguido el trazo perfecto con gran precisión!",
+                                    fontSize = 14.sp,
+                                    color = Color(0xFF546E7A),
+                                    textAlign = TextAlign.Center
+                                )
+                            }
+                            TracingFeedback.GOOD_EFFORT -> {
+                                Text(
+                                    text = "👍 ¡BUEN INTENTO! 👍",
+                                    fontSize = 22.sp,
+                                    fontWeight = FontWeight.Black,
+                                    color = Color(0xFF0284C7),
+                                    textAlign = TextAlign.Center
+                                )
 
-                        // 3 Sparkling Golden Stars Display
-                        Row(
-                            horizontalArrangement = Arrangement.Center,
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.padding(vertical = 4.dp)
-                        ) {
-                            repeat(3) {
-                                Icon(
-                                    imageVector = Icons.Default.Star,
-                                    contentDescription = "Golden Star",
-                                    tint = Color(0xFFFFD54F),
-                                    modifier = Modifier.size(48.dp)
+                                Text(
+                                    text = "¡Estuviste cerca! Intenta mantenerte en la línea de puntitos para ganar 3 estrellas.",
+                                    fontSize = 14.sp,
+                                    color = Color(0xFF546E7A),
+                                    textAlign = TextAlign.Center
+                                )
+                            }
+                            TracingFeedback.NEEDS_PRACTICE -> {
+                                Text(
+                                    text = "💪 ¡A PRACTICAR DE NUEVO! 💪",
+                                    fontSize = 20.sp,
+                                    fontWeight = FontWeight.Black,
+                                    color = Color(0xFFE11D48),
+                                    textAlign = TextAlign.Center
+                                )
+
+                                Text(
+                                    text = "Te saliste bastante del caminito. Tómate tu tiempo y sigue los puntitos despacio.",
+                                    fontSize = 14.sp,
+                                    color = Color(0xFF64748B),
+                                    textAlign = TextAlign.Center
                                 )
                             }
                         }
 
-                        // Sticker Unlock Announcement
-                        Text(
-                            text = "🏆 ¡HAS GANADO UN STICKER! 🏆",
-                            fontSize = 16.sp,
-                            fontWeight = FontWeight.ExtraBold,
-                            color = Color(0xFF8E24AA)
-                        )
+                        // Star rating display based on actual performance
+                        Row(
+                            horizontalArrangement = Arrangement.Center,
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.padding(vertical = 2.dp)
+                        ) {
+                            for (i in 1..3) {
+                                val isEarned = i <= starsEarned
+                                Icon(
+                                    imageVector = Icons.Default.Star,
+                                    contentDescription = "Star $i",
+                                    tint = if (isEarned) Color(0xFFFFD54F) else Color(0xFFE2E8F0),
+                                    modifier = Modifier.size(44.dp)
+                                )
+                            }
+                        }
 
-                        unlockedSticker?.let { stickerId ->
-                            // Custom colorful sticker unlock display
-                            StickerCard(
-                                stickerId = stickerId,
-                                modifier = Modifier
-                                    .width(180.dp)
-                                    .height(200.dp),
-                                pulseAnimation = true
+                        // Accuracy Chip
+                        Card(
+                            colors = CardDefaults.cardColors(
+                                containerColor = when (feedbackType) {
+                                    TracingFeedback.EXCELLENT -> Color(0xFFDCFCE7)
+                                    TracingFeedback.GOOD_EFFORT -> Color(0xFFE0F2FE)
+                                    TracingFeedback.NEEDS_PRACTICE -> Color(0xFFFFE4E6)
+                                }
+                            ),
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Text(
+                                text = "🎯 Precisión del trazo: $accuracyScore%",
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = when (feedbackType) {
+                                    TracingFeedback.EXCELLENT -> Color(0xFF166534)
+                                    TracingFeedback.GOOD_EFFORT -> Color(0xFF075985)
+                                    TracingFeedback.NEEDS_PRACTICE -> Color(0xFF9F1239)
+                                },
+                                modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp)
                             )
                         }
 
-                        // Play/Navigation CTA Buttons
+                        // Sticker Unlock only for genuine excellence
+                        if (feedbackType == TracingFeedback.EXCELLENT && unlockedSticker != null) {
+                            Text(
+                                text = "🏆 ¡HAS GANADO UN STICKER! 🏆",
+                                fontSize = 15.sp,
+                                fontWeight = FontWeight.ExtraBold,
+                                color = Color(0xFF8E24AA)
+                            )
+
+                            StickerCard(
+                                stickerId = unlockedSticker!!,
+                                modifier = Modifier
+                                    .width(160.dp)
+                                    .height(170.dp),
+                                pulseAnimation = true
+                            )
+                        } else if (feedbackType == TracingFeedback.GOOD_EFFORT) {
+                            Text(
+                                text = "✨ ¡Consigue 3 estrellas para ganar un sticker!",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFF7C3AED)
+                            )
+                        }
+
+                        // Action Buttons
                         Row(
                             modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
                         ) {
                             Button(
                                 onClick = {
                                     viewModel.playBubblePop()
                                     viewModel.resetTracingState()
                                 },
-                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF9800)),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = if (feedbackType == TracingFeedback.NEEDS_PRACTICE) Color(0xFF10B981) else Color(0xFFFF9800)
+                                ),
                                 modifier = Modifier
                                     .weight(1f)
-                                    .height(54.dp)
+                                    .height(52.dp)
                                     .testTag("btn_repeat_tracing"),
-                                shape = RoundedCornerShape(27.dp)
+                                shape = RoundedCornerShape(26.dp)
                             ) {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Icon(imageVector = Icons.Default.Refresh, contentDescription = "Repeat")
-                                    Spacer(modifier = Modifier.width(6.dp))
-                                    Text("Repetir", fontWeight = FontWeight.Black, fontSize = 15.sp)
+                                    Icon(imageVector = Icons.Default.Refresh, contentDescription = "Repeat", modifier = Modifier.size(20.dp))
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text(
+                                        text = if (feedbackType == TracingFeedback.NEEDS_PRACTICE) "Reintentar" else "Repetir",
+                                        fontWeight = FontWeight.Black,
+                                        fontSize = 14.sp
+                                    )
                                 }
                             }
 
@@ -737,14 +812,20 @@ fun TracingScreen(
                                     viewModel.resetTracingState()
                                     onNavigateBack()
                                 },
-                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4CAF50)),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = if (feedbackType == TracingFeedback.NEEDS_PRACTICE) Color(0xFF94A3B8) else Color(0xFF4CAF50)
+                                ),
                                 modifier = Modifier
                                     .weight(1f)
-                                    .height(54.dp)
+                                    .height(52.dp)
                                     .testTag("btn_finish_level"),
-                                shape = RoundedCornerShape(27.dp)
+                                shape = RoundedCornerShape(26.dp)
                             ) {
-                                Text("Aceptar", fontWeight = FontWeight.Black, fontSize = 15.sp)
+                                Text(
+                                    text = if (feedbackType == TracingFeedback.NEEDS_PRACTICE) "Salir" else "Aceptar",
+                                    fontWeight = FontWeight.Black,
+                                    fontSize = 14.sp
+                                )
                             }
                         }
                     }
