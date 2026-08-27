@@ -343,7 +343,22 @@ class TracingViewModel(
         isNewSegmentStarted = true
     }
 
-    // Interactive Tracing Pointer Evaluation
+    fun undoLastStroke() {
+        if (_isLevelCompleted.value) return
+        val currentStroke = _currentStrokeIndex.value
+        val currentPoint = _currentPointIndex.value
+
+        if (currentPoint > 0) {
+            _currentPointIndex.value = 0
+            _showRetryHint.value = false
+        } else if (currentStroke > 0) {
+            _currentStrokeIndex.value = currentStroke - 1
+            _currentPointIndex.value = 0
+            _showRetryHint.value = false
+        }
+    }
+
+    // Interactive Tracing Pointer Evaluation (Supports forward tracing and backward rewinding/retreating)
     fun onUserTouchMove(x: Float, y: Float) {
         if (_isLevelCompleted.value) return
 
@@ -362,6 +377,25 @@ class TracingViewModel(
         val tolerance = 0.14f
         val currentTarget = currentStroke[pointIdx]
         val distToTarget = hypot(x - currentTarget.x, y - currentTarget.y)
+
+        // Check if the child is sliding their finger BACKWARDS along previous points in the current stroke
+        if (pointIdx > 0 && distToTarget > tolerance) {
+            var closestPrevIdx = -1
+            var closestPrevDist = tolerance * 1.2f
+            for (k in (pointIdx - 1) downTo 0) {
+                val d = hypot(x - currentStroke[k].x, y - currentStroke[k].y)
+                if (d < closestPrevDist) {
+                    closestPrevDist = d
+                    closestPrevIdx = k
+                }
+            }
+            if (closestPrevIdx != -1) {
+                // Rewind stroke progress back to this point so the trace naturally follows the finger backwards
+                _currentPointIndex.value = closestPrevIdx
+                _showRetryHint.value = false
+                return
+            }
+        }
 
         // Evaluate if the touch point is close to the expected path
         var minDistanceToStroke = distToTarget
