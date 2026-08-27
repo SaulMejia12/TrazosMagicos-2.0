@@ -166,25 +166,6 @@ fun TracingScreen(
                         )
                     }
 
-                    // Undo last stroke / Rewind button
-                    Box(
-                        modifier = Modifier
-                            .size(48.dp)
-                            .clip(RoundedCornerShape(16.dp))
-                            .background(Color(0xFF8B5CF6)) // Purple-500
-                            .border(2.dp, Color.White, RoundedCornerShape(16.dp))
-                            .clickable {
-                                viewModel.playBubblePop()
-                                viewModel.undoLastStroke()
-                            }
-                            .testTag("btn_undo_stroke"),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text("↩️", fontSize = 22.sp)
-                    }
-
-                    Spacer(modifier = Modifier.width(8.dp))
-
                     // Reset drawing board (Orange background 3D-like with 🧹 emoji)
                     Box(
                         modifier = Modifier
